@@ -1,13 +1,83 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider          = "sqlserver"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model Employee {
+  EmployeeID   Int                 @id @default(autoincrement())
+  FirstName    String              @db.VarChar(50)
+  LastName     String              @db.VarChar(50)
+  Email        String              @unique @db.VarChar(100)
+  Password     String              @db.VarChar(255)
+  Role         String?             @db.VarChar(50)
+  assignments  ProjectAssignment[]
+}
+
+model Project {
+  ProjectID    Int                 @id @default(autoincrement())
+  ProjectName  String              @db.VarChar(100)
+  ClientName   String?             @db.VarChar(100)
+  Description  String?             @db.Text
+  StartDate    DateTime?
+  EndDate      DateTime?
+  Status       String?             @db.VarChar(50)
+  tasks        Task[]
+  documents    Document[]
+  assignments  ProjectAssignment[]
+}
+
+model Category {
+  CategoryID   Int        @id @default(autoincrement())
+  CategoryName String     @unique @db.VarChar(100)
+  Description  String?    @db.Text
+  documents    Document[]
+}
+
+model FileLocation {
+  FileLocationID Int        @id @default(autoincrement())
+  FilePath       String     @db.Text
+  LocationType   String?    @db.VarChar(50)
+  Notes          String?    @db.Text
+  documents      Document[]
+}
+
+model Document {
+  DocumentID     Int           @id @default(autoincrement())
+  ProjectID      Int
+  CategoryID     Int?
+  FileLocationID Int?
+  DocumentTitle  String        @db.VarChar(150)
+  FileName       String?       @db.VarChar(150)
+  VersionNumber  String?       @db.VarChar(20)
+  CreatedDate    DateTime?
+  UpdatedDate    DateTime?
+  CreatedBy      String?       @db.VarChar(100)
+  project        Project       @relation(fields: [ProjectID], references: [ProjectID])
+  category       Category?     @relation(fields: [CategoryID], references: [CategoryID])
+  fileLocation   FileLocation? @relation(fields: [FileLocationID], references: [FileLocationID])
+}
+
+model Task {
+  TaskID      Int      @id @default(autoincrement())
+  ProjectID   Int
+  TaskName    String   @db.VarChar(100)
+  Description String?  @db.Text
+  DueDate     DateTime?
+  Status      String?  @db.VarChar(50)
+  Priority    String?  @db.VarChar(20)
+  project     Project  @relation(fields: [ProjectID], references: [ProjectID])
+}
+
+model ProjectAssignment {
+  AssignmentID  Int      @id @default(autoincrement())
+  EmployeeID    Int
+  ProjectID     Int
+  RoleInProject String?  @db.VarChar(100)
+  employee      Employee @relation(fields: [EmployeeID], references: [EmployeeID])
+  project       Project  @relation(fields: [ProjectID], references: [ProjectID])
 }

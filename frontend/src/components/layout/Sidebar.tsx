@@ -30,23 +30,23 @@ export default function Sidebar() {
   return (
     <div style={{
       width: '220px', minWidth: '220px',
-      background: 'var(--bg-secondary)',
-      borderRight: '1px solid var(--border)',
+      background: '#0d1526',
+      borderRight: '1px solid #1e2d45',
       display: 'flex', flexDirection: 'column',
       height: '100vh', position: 'sticky', top: 0,
     }}>
       <div style={{
         padding: '20px 16px 16px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid #1e2d45',
       }}>
         <div style={{
           fontFamily: 'Syne, sans-serif',
           fontSize: '16px', fontWeight: 800,
-          color: 'var(--accent-cyan)',
+          color: '#00d4ff',
           letterSpacing: '0.5px',
         }}>CorpPM</div>
         <div style={{
-          fontSize: '10px', color: 'var(--text-muted)',
+          fontSize: '10px', color: '#8b9ab3',
           marginTop: '2px', letterSpacing: '1.5px',
           textTransform: 'uppercase',
         }}>Project Management</div>
@@ -56,9 +56,13 @@ export default function Sidebar() {
         {sections.map(section => (
           <div key={section}>
             <div style={{
-              fontSize: '9px', color: 'var(--text-muted)',
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              padding: '8px 8px 4px', marginTop: section === 'Resources' ? '8px' : '0',
+              fontSize: '10px',
+              color: '#8b9ab3',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase',
+              padding: '10px 10px 6px',
+              marginTop: section === 'Resources' ? '8px' : '0',
+              fontWeight: 600,
             }}>{section}</div>
             {navItems
               .filter(item => item.section === section)
@@ -67,34 +71,28 @@ export default function Sidebar() {
                   key={item.path}
                   to={item.path}
                   style={({ isActive }) => ({
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '9px 10px',
                     borderRadius: '8px',
                     marginBottom: '2px',
                     fontSize: '13px',
-                    fontWeight: isActive ? 500 : 400,
-                    color: isActive ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                    background: isActive ? 'var(--accent-cyan-dim)' : 'transparent',
-                    borderLeft: isActive ? '2px solid var(--accent-cyan)' : '2px solid transparent',
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? '#00d4ff' : '#c8d8f0',
+                    background: isActive ? 'rgba(0,212,255,0.1)' : 'transparent',
+                    borderLeft: isActive
+                      ? '2px solid #00d4ff'
+                      : '2px solid transparent',
                     textDecoration: 'none',
                     transition: 'all 0.15s',
                   })}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget
-                    if (!el.style.borderLeftColor.includes('0,212')) {
-                      el.style.background = 'var(--bg-card)'
-                      el.style.color = 'var(--text-primary)'
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget
-                    if (!el.style.borderLeftColor.includes('0,212')) {
-                      el.style.background = 'transparent'
-                      el.style.color = 'var(--text-secondary)'
-                    }
-                  }}
                 >
-                  <span style={{ fontSize: '14px', width: '16px', textAlign: 'center' }}>
+                  <span style={{
+                    fontSize: '15px',
+                    width: '18px',
+                    textAlign: 'center',
+                  }}>
                     {item.icon}
                   </span>
                   {item.label}
@@ -106,25 +104,31 @@ export default function Sidebar() {
 
       <div style={{
         padding: '12px 8px',
-        borderTop: '1px solid var(--border)',
+        borderTop: '1px solid #1e2d45',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           padding: '8px 10px', borderRadius: '8px',
-          background: 'var(--bg-card)',
+          background: '#111827',
         }}>
           <div style={{
             width: '30px', height: '30px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-cyan))',
+            background: 'linear-gradient(135deg, #7c3aed, #00d4ff)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '11px', fontWeight: 700, color: '#fff',
             flexShrink: 0,
           }}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.firstName} {user?.lastName}
+            <div style={{
+              fontSize: '12px', fontWeight: 500,
+              color: '#f0f4ff',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {user?.firstName} {user?.lastName}
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '10px', color: '#8b9ab3' }}>
               {user?.role}
             </div>
           </div>
@@ -133,10 +137,13 @@ export default function Sidebar() {
             title="Logout"
             style={{
               background: 'none', border: 'none',
-              color: 'var(--text-muted)', fontSize: '14px',
+              color: '#8b9ab3', fontSize: '16px',
               cursor: 'pointer', padding: '2px',
               flexShrink: 0,
+              transition: 'color 0.15s',
             }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#8b9ab3')}
           >⏻</button>
         </div>
       </div>
