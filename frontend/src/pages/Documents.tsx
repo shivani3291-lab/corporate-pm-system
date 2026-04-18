@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/layout/Layout'
-import { documentsAPI, projectsAPI, categoriesAPI } from '../services/api'
+import { documentsAPI, projectsAPI, categoriesAPI, aiAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 function FileIcon({ fileName }: { fileName: string }) {
@@ -16,9 +16,9 @@ function FileIcon({ fileName }: { fileName: string }) {
     pptx: { icon: '◇', color: '#f59e0b' },
     png: { icon: '◉', color: '#7c3aed' },
     jpg: { icon: '◉', color: '#7c3aed' },
-    txt: { icon: '◫', color: '#8b9ab3' },
+    txt: { icon: '◫', color: '#b8c2d6' },
   }
-  const { icon, color } = icons[ext] || { icon: '◬', color: '#8b9ab3' }
+  const { icon, color } = icons[ext] || { icon: '◬', color: '#b8c2d6' }
   return (
     <div style={{
       width: '40px', height: '40px', borderRadius: '10px',
@@ -28,6 +28,20 @@ function FileIcon({ fileName }: { fileName: string }) {
       justifyContent: 'center', fontSize: '18px',
       color, flexShrink: 0,
     }}>{icon}</div>
+  )
+}
+
+function matchPredictedCategory(
+  predicted: string,
+  categories: { CategoryID: number; CategoryName: string }[],
+) {
+  const p = predicted.trim().toLowerCase()
+  const exact = categories.find((c) => c.CategoryName.toLowerCase() === p)
+  if (exact) return exact
+  return categories.find(
+    (c) =>
+      c.CategoryName.toLowerCase().includes(p) ||
+      p.includes(c.CategoryName.toLowerCase()),
   )
 }
 
@@ -49,6 +63,7 @@ function DocumentModal({
     versionNumber: initial?.VersionNumber || 'v1',
     createdBy: initial?.CreatedBy || '',
   })
+  const [suggestLoading, setSuggestLoading] = useState(false)
 
   return (
     <div style={{
@@ -74,7 +89,7 @@ function DocumentModal({
           }}>{initial ? 'Edit Document' : 'New Document'}</h2>
           <button onClick={onClose} style={{
             background: 'none', border: 'none',
-            color: '#8b9ab3', fontSize: '20px', cursor: 'pointer',
+            color: '#b8c2d6', fontSize: '20px', cursor: 'pointer',
           }}>×</button>
         </div>
 
@@ -83,11 +98,65 @@ function DocumentModal({
           { label: 'Category', key: 'categoryId', type: 'select', options: categories.map((c: any) => ({ value: c.CategoryID, label: c.CategoryName })) },
         ].map(({ label, key, options }) => (
           <div key={key} style={{ marginBottom: '16px' }}>
-            <label style={{
-              display: 'block', fontSize: '11px', fontWeight: 600,
-              color: '#8b9ab3', marginBottom: '6px',
-              textTransform: 'uppercase', letterSpacing: '0.5px',
-            }}>{label}</label>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: '6px', gap: '8px',
+            }}>
+              <label style={{
+                display: 'block', fontSize: '11px', fontWeight: 600,
+                color: '#b8c2d6',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>{label}</label>
+              {key === 'categoryId' && (
+                <button
+                  type="button"
+                  disabled={suggestLoading || !String(form.documentTitle || '').trim()}
+                  onClick={async () => {
+                    const title = String(form.documentTitle || '').trim()
+                    if (!title) {
+                      toast.error('Enter a document title first')
+                      return
+                    }
+                    setSuggestLoading(true)
+                    try {
+                      const { data } = await aiAPI.classifyDocument(title)
+                      const match = matchPredictedCategory(data.category, categories)
+                      if (match) {
+                        setForm((prev) => ({
+                          ...prev,
+                          categoryId: String(match.CategoryID),
+                        }))
+                        toast.success(
+                          `Category: ${match.CategoryName} (${Math.round(data.confidence * 100)}% confidence)`,
+                        )
+                      } else {
+                        toast.error(
+                          `Model suggests "${data.category}" — add a matching category or pick manually.`,
+                        )
+                      }
+                    } catch {
+                      toast.error('AI suggestion failed (is the AI service running?)')
+                    } finally {
+                      setSuggestLoading(false)
+                    }
+                  }}
+                  style={{
+                    padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                    fontFamily: 'Syne, sans-serif',
+                    background: 'rgba(124, 58, 237, 0.15)',
+                    border: '1px solid rgba(124, 58, 237, 0.35)',
+                    borderRadius: '6px', color: '#c4b5fd',
+                    cursor: suggestLoading || !String(form.documentTitle || '').trim()
+                      ? 'not-allowed'
+                      : 'pointer',
+                    opacity: suggestLoading || !String(form.documentTitle || '').trim() ? 0.5 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {suggestLoading ? '…' : 'AI suggest'}
+                </button>
+              )}
+            </div>
             <select
               value={form[key as keyof typeof form]}
               onChange={e => setForm({ ...form, [key]: e.target.value })}
@@ -115,7 +184,7 @@ function DocumentModal({
           <div key={key} style={{ marginBottom: '16px' }}>
             <label style={{
               display: 'block', fontSize: '11px', fontWeight: 600,
-              color: '#8b9ab3', marginBottom: '6px',
+              color: '#b8c2d6', marginBottom: '6px',
               textTransform: 'uppercase', letterSpacing: '0.5px',
             }}>{label}</label>
             <input
@@ -139,7 +208,7 @@ function DocumentModal({
           <button onClick={onClose} style={{
             padding: '10px 20px', background: 'transparent',
             border: '1px solid #1e2d45', borderRadius: '8px',
-            color: '#8b9ab3', fontSize: '13px', cursor: 'pointer',
+            color: '#b8c2d6', fontSize: '13px', cursor: 'pointer',
           }}>Cancel</button>
           <button
             onClick={() => onSubmit(form)}
@@ -148,7 +217,7 @@ function DocumentModal({
               padding: '10px 20px',
               background: loading ? '#1e2d45' : '#00d4ff',
               border: 'none', borderRadius: '8px',
-              color: loading ? '#8b9ab3' : '#0a0f1e',
+              color: loading ? '#b8c2d6' : '#0a0f1e',
               fontSize: '13px', fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'Syne, sans-serif',
@@ -245,7 +314,7 @@ export default function Documents() {
                 fontSize: '12px', fontWeight: 500, cursor: 'pointer',
                 border: filter === c ? 'none' : '1px solid #1e2d45',
                 background: filter === c ? '#00d4ff' : 'transparent',
-                color: filter === c ? '#0a0f1e' : '#8b9ab3',
+                color: filter === c ? '#0a0f1e' : '#b8c2d6',
               }}>{c}</button>
             ))}
           </div>
@@ -278,7 +347,7 @@ export default function Documents() {
               fontFamily: 'Syne, sans-serif',
               fontSize: '16px', color: '#f0f4ff', marginBottom: '8px',
             }}>No documents found</div>
-            <div style={{ fontSize: '13px', color: '#8b9ab3', marginBottom: '20px' }}>
+            <div style={{ fontSize: '13px', color: '#b8c2d6', marginBottom: '20px' }}>
               Add your first document to get started
             </div>
             <button
@@ -327,7 +396,7 @@ export default function Documents() {
                       overflow: 'hidden', textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}>{doc.DocumentTitle}</div>
-                    <div style={{ fontSize: '11px', color: '#8b9ab3' }}>
+                    <div style={{ fontSize: '11px', color: '#b8c2d6' }}>
                       {doc.FileName || 'No file name'}
                     </div>
                   </div>
@@ -361,7 +430,7 @@ export default function Documents() {
                       fontSize: '11px',
                     }}>
                       <span style={{ color: '#4a5568' }}>{item.label}</span>
-                      <span style={{ color: '#8b9ab3' }}>{item.value}</span>
+                      <span style={{ color: '#b8c2d6' }}>{item.value}</span>
                     </div>
                   ))}
                 </div>

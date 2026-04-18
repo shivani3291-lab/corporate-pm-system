@@ -35,7 +35,7 @@ export default function Categories() {
   })
 
   const icons = ['◈', '◇', '▦', '◉', '◫', '⬡', '◬', '◎']
-  const accents = ['#00d4ff', '#7c3aed', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#8b9ab3']
+  const accents = ['#00d4ff', '#7c3aed', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#b8c2d6']
 
   return (
     <Layout title="Categories" subtitle="Document classification groups">
@@ -45,7 +45,7 @@ export default function Categories() {
           display: 'flex', justifyContent: 'space-between',
           alignItems: 'center', marginBottom: '24px',
         }}>
-          <div style={{ fontSize: '13px', color: '#8b9ab3' }}>
+          <div style={{ fontSize: '13px', color: '#b8c2d6' }}>
             {categories.length} categories defined
           </div>
           <button
@@ -78,7 +78,7 @@ export default function Categories() {
               <div>
                 <label style={{
                   display: 'block', fontSize: '11px', fontWeight: 600,
-                  color: '#8b9ab3', marginBottom: '6px',
+                  color: '#b8c2d6', marginBottom: '6px',
                   textTransform: 'uppercase', letterSpacing: '0.5px',
                 }}>Category Name</label>
                 <input
@@ -98,7 +98,7 @@ export default function Categories() {
               <div>
                 <label style={{
                   display: 'block', fontSize: '11px', fontWeight: 600,
-                  color: '#8b9ab3', marginBottom: '6px',
+                  color: '#b8c2d6', marginBottom: '6px',
                   textTransform: 'uppercase', letterSpacing: '0.5px',
                 }}>Description</label>
                 <input
@@ -122,7 +122,7 @@ export default function Categories() {
                 style={{
                   padding: '9px 18px', background: 'transparent',
                   border: '1px solid #1e2d45', borderRadius: '8px',
-                  color: '#8b9ab3', fontSize: '13px', cursor: 'pointer',
+                  color: '#b8c2d6', fontSize: '13px', cursor: 'pointer',
                 }}
               >Cancel</button>
               <button
@@ -132,7 +132,7 @@ export default function Categories() {
                   padding: '9px 18px',
                   background: !name ? '#1e2d45' : '#00d4ff',
                   border: 'none', borderRadius: '8px',
-                  color: !name ? '#8b9ab3' : '#0a0f1e',
+                  color: !name ? '#b8c2d6' : '#0a0f1e',
                   fontSize: '13px', fontWeight: 700,
                   cursor: !name ? 'not-allowed' : 'pointer',
                   fontFamily: 'Syne, sans-serif',
@@ -206,7 +206,7 @@ export default function Categories() {
 
                   {cat.Description && (
                     <div style={{
-                      fontSize: '11px', color: '#8b9ab3',
+                      fontSize: '11px', color: '#b8c2d6',
                       lineHeight: 1.5, marginBottom: '12px',
                       overflow: 'hidden', display: '-webkit-box',
                       WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -218,7 +218,7 @@ export default function Categories() {
                     alignItems: 'center', marginTop: '12px',
                     paddingTop: '12px', borderTop: '1px solid #1e2d45',
                   }}>
-                    <span style={{ fontSize: '11px', color: '#8b9ab3' }}>
+                    <span style={{ fontSize: '11px', color: '#b8c2d6' }}>
                       {cat._count?.documents || 0} documents
                     </span>
                     <button

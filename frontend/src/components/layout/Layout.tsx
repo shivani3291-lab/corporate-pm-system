@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { SidebarProvider } from '../../context/SidebarContext'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 
@@ -10,6 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children, title, subtitle }: LayoutProps) {
   return (
+    <SidebarProvider>
     <div style={{
       display: 'flex',
       height: '100vh',
@@ -21,6 +23,7 @@ export default function Layout({ children, title, subtitle }: LayoutProps) {
         flex: 1, display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        minWidth: 0,
       }}>
         <Topbar title={title} subtitle={subtitle} />
         <main style={{
@@ -33,5 +36,6 @@ export default function Layout({ children, title, subtitle }: LayoutProps) {
         </main>
       </div>
     </div>
+    </SidebarProvider>
   )
 }

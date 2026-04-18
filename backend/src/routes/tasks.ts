@@ -59,15 +59,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { taskName, description, dueDate, status, priority } = req.body
+    const data: Record<string, unknown> = {}
+    if (taskName !== undefined) data.TaskName = taskName
+    if (description !== undefined) data.Description = description
+    if (dueDate !== undefined) data.DueDate = dueDate ? new Date(dueDate as string) : null
+    if (status !== undefined) data.Status = status
+    if (priority !== undefined) data.Priority = priority
     const task = await prisma.task.update({
       where: { TaskID: parseInt(req.params.id as string) },
-      data: {
-        TaskName: taskName,
-        Description: description,
-        DueDate: dueDate ? new Date(dueDate) : null,
-        Status: status,
-        Priority: priority,
-      }
+      data,
     })
     res.json(task)
   } catch (error) {

@@ -62,4 +62,58 @@ export const categoriesAPI = {
   delete: (id: number) => api.delete(`/categories/${id}`),
 }
 
+export const alertsAPI = {
+  getAll: () =>
+    api.get<
+      Array<{
+        AlertID: number
+        ProjectID: number
+        AlertType: string
+        Severity: string
+        Message: string | null
+        TaskID: number | null
+        CreatedAt: string
+        project: { ProjectID: number; ProjectName: string }
+      }>
+    >('/alerts'),
+}
+
+export const aiAPI = {
+  classifyDocument: (title: string) =>
+    api.post<{ category: string; confidence: number }>('/ai/classify-document', {
+      title,
+    }),
+  semanticSearch: (query: string, limit = 8) =>
+    api.post<{
+      results: Array<{
+        title: string
+        score: number
+        id: number | null
+        kind: string | null
+      }>
+    }>('/ai/search', { query, limit }),
+  predictDelayBatch: (projectIds: number[]) =>
+    api.post<{
+      results: Array<{
+        projectId: number
+        riskScore: number
+        riskLevel: string
+        reason: string
+      }>
+    }>('/ai/predict-delay-batch', { projectIds }),
+  analyzeProjectHealth: (projectId: number, persist = false) =>
+    api.post<{
+      projectId: number
+      riskLevel: string
+      riskScore: number
+      alerts: Array<{ type: string; severity: string; message: string }>
+      escalatedTasks: Array<{
+        taskId: number
+        fromPriority: string
+        toPriority: string
+        reason: string
+      }>
+    }>('/ai/analyze-project-health', { projectId, persist }),
+}
+
 export default api

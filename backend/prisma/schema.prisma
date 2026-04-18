@@ -29,6 +29,7 @@ model Project {
   tasks        Task[]
   documents    Document[]
   assignments  ProjectAssignment[]
+  alerts       ProjectAlert[]
 }
 
 model Category {
@@ -71,6 +72,17 @@ model Task {
   Status      String?  @db.VarChar(50)
   Priority    String?  @db.VarChar(20)
   project     Project  @relation(fields: [ProjectID], references: [ProjectID])
+}
+
+model ProjectAlert {
+  AlertID   Int      @id @default(autoincrement())
+  ProjectID Int
+  AlertType String   @db.VarChar(80)
+  Severity  String   @db.VarChar(20)
+  Message   String?  @db.Text
+  TaskID    Int?
+  CreatedAt DateTime @default(now())
+  project   Project  @relation(fields: [ProjectID], references: [ProjectID], onDelete: Cascade)
 }
 
 model ProjectAssignment {

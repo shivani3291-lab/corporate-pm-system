@@ -1,9 +1,18 @@
 import { Router, Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { PrismaClientInitializationError } from '@prisma/client/runtime/library'
 import prisma from '../lib/prisma'
 
 const router = Router()
+
+// Helper to check if error is a DB connection error
+function isDbConnectionError(error: unknown): boolean {
+  return (
+    error instanceof PrismaClientInitializationError ||
+    (error instanceof Error && error.message.includes("Can't reach database server"))
+  )
+}
 
 router.post('/register', async (req: Request, res: Response) => {
   try {
@@ -47,6 +56,9 @@ router.post('/register', async (req: Request, res: Response) => {
     })
   } catch (error) {
     console.error(error)
+    if (isDbConnectionError(error)) {
+      return res.status(503).json({ error: 'Database unavailable. Please try again shortly.' })
+    }
     res.status(500).json({ error: 'Registration failed' })
   }
 })
@@ -86,6 +98,9 @@ router.post('/login', async (req: Request, res: Response) => {
     })
   } catch (error) {
     console.error(error)
+    if (isDbConnectionError(error)) {
+      return res.status(503).json({ error: 'Database unavailable. Please try again shortly.' })
+    }
     res.status(500).json({ error: 'Login failed' })
   }
 })

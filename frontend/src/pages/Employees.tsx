@@ -114,7 +114,7 @@ export default function Employees() {
                   borderTop: '1px solid #1e2d45',
                 }}>
                   <div style={{
-                    fontSize: '12px', color: '#8b9ab3',
+                    fontSize: '12px', color: '#b8c2d6',
                     display: 'flex', alignItems: 'center',
                     gap: '6px', marginBottom: '8px',
                   }}>
@@ -122,7 +122,7 @@ export default function Employees() {
                     {emp.Email}
                   </div>
                   <div style={{
-                    fontSize: '12px', color: '#8b9ab3',
+                    fontSize: '12px', color: '#b8c2d6',
                     display: 'flex', alignItems: 'center', gap: '6px',
                   }}>
                     <span style={{ color: '#4a5568' }}>◈</span>
