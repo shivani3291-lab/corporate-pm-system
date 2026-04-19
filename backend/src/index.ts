@@ -17,8 +17,11 @@ import { runPredictiveAlertsJob } from './jobs/predictiveAlerts'
 
 const app = express()
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
+  origin: [
+    'http://localhost:5173',
+    'https://corporate-pm-frontend-bgeyefcjcqgpb9hf.centralindia-01.azurewebsites.net'
+  ],
+  credentials: true
 }))
 app.use(express.json())
 
