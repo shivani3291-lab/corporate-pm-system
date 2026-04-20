@@ -76,17 +76,23 @@ jobs:
         working-directory: backend
         run: pnpm build
 
-      - name: Copy package.json to dist
+      - name: Prepare deployment package
         working-directory: backend
-        run: cp package.json dist/
+        run: |
+          cp package.json dist/
+          cp -r prisma dist/
+          cd dist
+          npm install --omit=dev
 
-      - name: Copy prisma folder to dist
-        working-directory: backend
-        run: cp -r prisma dist/
-
-      - name: Install production dependencies in dist
+      - name: Fix start script in package.json
         working-directory: backend/dist
-        run: npm install --omit=dev
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.scripts.start = 'node index.js';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
 
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
