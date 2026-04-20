@@ -137,7 +137,7 @@ export default function Register() {
           }}
         >
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '18px' }}>
+            <div className="mb-[18px] grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-[14px]">
               <div>
                 <label
                   style={{

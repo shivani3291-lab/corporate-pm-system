@@ -331,7 +331,7 @@ export default function Documents() {
         </div>
 
         {isLoading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="skeleton" style={{ height: '140px', borderRadius: '12px' }} />
             ))}
@@ -361,11 +361,7 @@ export default function Documents() {
             >Add Document</button>
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '16px',
-          }}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
             {filtered.map((doc: any) => (
               <div
                 key={doc.DocumentID}

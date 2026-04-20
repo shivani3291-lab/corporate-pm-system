@@ -71,10 +71,7 @@ export default function Categories() {
               fontSize: '15px', fontWeight: 700,
               color: '#f0f4ff', marginBottom: '16px',
             }}>Create new category</h3>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 2fr',
-              gap: '12px', marginBottom: '16px',
-            }}>
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
               <div>
                 <label style={{
                   display: 'block', fontSize: '11px', fontWeight: 600,
@@ -143,7 +140,7 @@ export default function Categories() {
         )}
 
         {isLoading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="skeleton" style={{ height: '120px', borderRadius: '12px' }} />
             ))}

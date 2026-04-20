@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useSidebar } from '../../context/SidebarContext'
@@ -17,9 +18,10 @@ const sections = ['Main', 'Resources']
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const { collapsed, toggle } = useSidebar()
+  const { collapsed, toggle, isMobile, mobileNavOpen, closeMobileNav } = useSidebar()
 
   const handleLogout = () => {
+    closeMobileNav()
     logout()
     toast.success('Signed out successfully')
     navigate('/login')
@@ -30,28 +32,78 @@ export default function Sidebar() {
     : 'U'
 
   const w = collapsed ? 72 : 220
+  /** On small screens the drawer always shows full labels (ignores desktop “collapsed”). */
+  const narrow = !isMobile && collapsed
+
+  const panelStyle: CSSProperties = isMobile
+    ? {
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        zIndex: 220,
+        width: 'min(288px, 88vw)',
+        height: '100vh',
+        background: 'linear-gradient(180deg, #0d1526 0%, #0a0f1e 100%)',
+        borderRight: '1px solid #1e2d45',
+        display: 'flex',
+        flexDirection: 'column',
+        transform: mobileNavOpen ? 'translateX(0)' : 'translateX(-105%)',
+        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+        boxShadow: mobileNavOpen ? '12px 0 40px rgba(0,0,0,0.55)' : 'none',
+        flexShrink: 0,
+      }
+    : {
+        width: `${w}px`,
+        minWidth: `${w}px`,
+        background: 'linear-gradient(180deg, #0d1526 0%, #0a0f1e 100%)',
+        borderRight: '1px solid #1e2d45',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        transition: 'width 0.22s ease, min-width 0.22s ease',
+        flexShrink: 0,
+      }
 
   return (
-    <div style={{
-      width: `${w}px`, minWidth: `${w}px`,
-      background: 'linear-gradient(180deg, #0d1526 0%, #0a0f1e 100%)',
-      borderRight: '1px solid #1e2d45',
-      display: 'flex', flexDirection: 'column',
-      height: '100vh', position: 'sticky', top: 0,
-      transition: 'width 0.22s ease, min-width 0.22s ease',
-      flexShrink: 0,
-    }}>
+    <>
+      {isMobile && mobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={closeMobileNav}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 210,
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            background: 'rgba(0,0,0,0.55)',
+            cursor: 'pointer',
+          }}
+        />
+      )}
+      <div
+        style={
+          isMobile
+            ? { width: 0, flexShrink: 0, position: 'relative', zIndex: 0 }
+            : { flexShrink: 0 }
+        }
+      >
+        <div style={panelStyle}>
       <div style={{
-        padding: collapsed ? '16px 12px' : '20px 16px 12px',
+        padding: narrow ? '16px 12px' : '20px 16px 12px',
         borderBottom: '1px solid #1e2d45',
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
+          justifyContent: narrow ? 'center' : 'space-between',
           gap: '8px',
         }}>
-          {!collapsed && (
+          {!narrow && (
             <div>
               <div style={{
                 fontFamily: 'Syne, sans-serif',
@@ -66,7 +118,7 @@ export default function Sidebar() {
               }}>Project Management</div>
             </div>
           )}
-          {collapsed && (
+          {narrow && (
             <div style={{
               fontFamily: 'Syne, sans-serif',
               fontSize: '18px', fontWeight: 800,
@@ -74,12 +126,13 @@ export default function Sidebar() {
             }}>C</div>
           )}
         </div>
+        {!isMobile && (
         <button
           type="button"
           onClick={toggle}
-          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          title={narrow ? 'Expand navigation' : 'Collapse navigation'}
           style={{
-            marginTop: collapsed ? '12px' : '14px',
+            marginTop: narrow ? '12px' : '14px',
             width: '100%',
             padding: '8px',
             borderRadius: '8px',
@@ -91,14 +144,34 @@ export default function Sidebar() {
             transition: 'all 0.15s',
           }}
         >
-          {collapsed ? '»' : '« Collapse'}
+          {narrow ? '»' : '« Collapse'}
         </button>
+        )}
+        {isMobile && (
+          <button
+            type="button"
+            onClick={closeMobileNav}
+            style={{
+              marginTop: '12px',
+              width: '100%',
+              padding: '8px',
+              borderRadius: '8px',
+              border: '1px solid #1e2d45',
+              background: '#111827',
+              color: '#b8c2d6',
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            Close menu
+          </button>
+        )}
       </div>
 
       <nav style={{ padding: '12px 8px', flex: 1, overflowY: 'auto' }}>
         {sections.map(section => (
           <div key={section}>
-            {!collapsed && (
+            {!narrow && (
               <div style={{
                 fontSize: '10px',
                 color: '#6b7280',
@@ -115,20 +188,21 @@ export default function Sidebar() {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  title={collapsed ? item.label : undefined}
+                  title={narrow ? item.label : undefined}
+                  onClick={() => isMobile && closeMobileNav()}
                   style={({ isActive }) => ({
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    justifyContent: narrow ? 'center' : 'flex-start',
                     gap: '10px',
-                    padding: collapsed ? '10px 8px' : '9px 10px',
+                    padding: narrow ? '10px 8px' : '9px 10px',
                     borderRadius: '8px',
                     marginBottom: '2px',
                     fontSize: '13px',
                     fontWeight: isActive ? 700 : 400,
                     color: isActive ? '#00d4ff' : '#c8d8f0',
                     background: isActive ? 'rgba(0,212,255,0.12)' : 'transparent',
-                    borderLeft: isActive && !collapsed
+                    borderLeft: isActive && !narrow
                       ? '3px solid #00d4ff'
                       : '3px solid transparent',
                     textDecoration: 'none',
@@ -143,7 +217,7 @@ export default function Sidebar() {
                   }}>
                     {item.icon}
                   </span>
-                  {!collapsed && item.label}
+                  {!narrow && item.label}
                 </NavLink>
               ))}
           </div>
@@ -161,7 +235,7 @@ export default function Sidebar() {
           padding: '8px 10px',
           borderRadius: '8px',
           background: '#111827',
-          justifyContent: collapsed ? 'center' : 'flex-start',
+          justifyContent: narrow ? 'center' : 'flex-start',
         }}>
           <div style={{
             width: '30px', height: '30px', borderRadius: '50%',
@@ -170,7 +244,7 @@ export default function Sidebar() {
             fontSize: '11px', fontWeight: 700, color: '#fff',
             flexShrink: 0,
           }}>{initials}</div>
-          {!collapsed && (
+          {!narrow && (
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
                 fontSize: '12px', fontWeight: 500,
@@ -186,7 +260,7 @@ export default function Sidebar() {
               </div>
             </div>
           )}
-          {!collapsed && (
+          {!narrow && (
             <button
               onClick={handleLogout}
               title="Sign out"
@@ -203,6 +277,8 @@ export default function Sidebar() {
           )}
         </div>
       </div>
-    </div>
+        </div>
+      </div>
+    </>
   )
 }

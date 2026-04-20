@@ -494,11 +494,17 @@ export default function Tasks() {
           </div>
         )}
 
-        <div style={{
-          background: '#111827',
-          border: '1px solid #1e2d45',
-          borderRadius: '12px', overflow: 'hidden',
-        }}>
+        <div
+          style={{
+            background: '#111827',
+            border: '1px solid #1e2d45',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}
+          className="min-w-0"
+        >
+          <div className="overflow-x-auto">
+          <div style={{ minWidth: '720px' }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: '36px 2fr 1fr 1fr 1fr 1fr 110px',
@@ -706,6 +712,8 @@ export default function Tasks() {
               </div>
             )})
           )}
+          </div>
+          </div>
         </div>
       </div>
 

@@ -26,11 +26,8 @@ export default function Layout({ children, title, subtitle }: LayoutProps) {
         minWidth: 0,
       }}>
         <Topbar title={title} subtitle={subtitle} />
-        <main style={{
-          flex: 1, overflowY: 'auto',
-          padding: '24px',
-        }}
-          className="page-enter"
+        <main
+          className="page-enter flex-1 overflow-y-auto p-3 sm:p-4 md:p-6"
         >
           {children}
         </main>

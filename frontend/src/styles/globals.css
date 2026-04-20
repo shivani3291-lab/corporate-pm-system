@@ -42,7 +42,7 @@
     font-family: 'DM Sans', sans-serif;
     background-color: #0a0f1e;
     color: #f0f4ff;
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
   }
 

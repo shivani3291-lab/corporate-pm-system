@@ -434,14 +434,7 @@ export default function Dashboard() {
         </div>
 
         {/* Daily Brief */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
-            marginBottom: '24px',
-          }}
-        >
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div
             style={{
               background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, #111827 40%)',
@@ -576,14 +569,7 @@ export default function Dashboard() {
           </ul>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '12px',
-            marginBottom: '24px',
-          }}
-        >
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <MetricCard
             icon="◈"
             label="Active projects"
@@ -744,14 +730,7 @@ export default function Dashboard() {
           </KpiModal>
         )}
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 320px',
-            gap: '16px',
-            marginBottom: '24px',
-          }}
-        >
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_minmax(260px,320px)]">
           <div
             style={{
               background: 'linear-gradient(145deg, #111827 0%, #0d1526 100%)',
@@ -1119,13 +1098,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
-          }}
-        >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div
             style={{
               background: '#111827',

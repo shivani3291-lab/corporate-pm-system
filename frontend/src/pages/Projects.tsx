@@ -184,7 +184,7 @@ function ProjectModal({
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
           {field('Start Date', 'startDate', 'date')}
           {field('End Date', 'endDate', 'date')}
         </div>

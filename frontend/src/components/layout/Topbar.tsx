@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useSidebar } from '../../context/SidebarContext'
 import { aiAPI } from '../../services/api'
 
 interface TopbarProps {
@@ -17,6 +18,7 @@ type SearchHit = {
 
 export default function Topbar({ title, subtitle }: TopbarProps) {
   const { user } = useAuth()
+  const { isMobile, toggleMobileNav } = useSidebar()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [debounced, setDebounced] = useState('')
@@ -90,29 +92,39 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
   const showPanel = open && debounced.trim().length >= 2
 
   return (
-    <div style={{
-      height: '56px', minHeight: '56px',
-      background: '#0d1526',
-      borderBottom: '1px solid #1e2d45',
-      display: 'flex', alignItems: 'center',
-      padding: '0 24px', gap: '16px',
-    }}>
-      <div style={{ flex: 1 }}>
-        <div style={{
-          fontFamily: 'Syne, sans-serif',
-          fontSize: '16px', fontWeight: 700,
-          color: '#f0f4ff',
-        }}>{title}</div>
+    <div
+      className="topbar-responsive flex min-h-[52px] flex-wrap items-center gap-3 border-b border-[#1e2d45] bg-[#0d1526] px-3 py-2 md:min-h-14 md:gap-4 md:px-6 md:py-0"
+      style={{
+        rowGap: '10px',
+      }}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
+        {isMobile && (
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={toggleMobileNav}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#1e2d45] bg-[#111827] text-[18px] text-[#b8c2d6] md:hidden"
+          >
+            ☰
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+        <div
+          className="truncate font-[Syne,sans-serif] text-sm font-bold text-[#f0f4ff] md:text-base"
+        >{title}</div>
         {subtitle && (
-          <div style={{ fontSize: '11px', color: '#b8c2d6', marginTop: '1px',fontWeight: 900 }}>
+          <div className="mt-0.5 truncate text-[10px] font-black text-[#b8c2d6] sm:text-[11px]">
             {subtitle}
           </div>
         )}
+        </div>
       </div>
 
       <div
         ref={wrapRef}
-        style={{ position: 'relative', width: 'min(360px, 42vw)' }}
+        className="order-last w-full min-w-0 md:order-none md:w-[min(360px,42vw)]"
+        style={{ position: 'relative' }}
       >
         <div style={{
           display: 'flex', alignItems: 'center',
@@ -130,7 +142,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
               setOpen(true)
             }}
             onFocus={() => setOpen(true)}
-            placeholder="Search projects, tasks, documents or ask a question…"
+            placeholder="Search…"
             aria-label="Semantic search"
             style={{
               background: 'none', border: 'none', outline: 'none',
@@ -224,27 +236,19 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         )}
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        gap: '6px', padding: '7px 14px',
-        background: '#111827',
-        border: '1px solid #1e2d45',
-        borderRadius: '8px',
-        fontSize: '13px', color: '#c8d8f0',
-        whiteSpace: 'nowrap',
-      }}>
-        <span style={{ color: '#00d4ff', fontSize: '12px' }}>✦</span>
-        {greeting()}, {user?.firstName}
+      <div className="hidden max-w-[200px] items-center gap-1.5 rounded-lg border border-[#1e2d45] bg-[#111827] px-3 py-1.5 text-[13px] text-[#c8d8f0] sm:flex sm:truncate sm:whitespace-nowrap">
+        <span className="shrink-0 text-[#00d4ff]">✦</span>
+        <span className="truncate">
+          {greeting()}, {user?.firstName}
+        </span>
       </div>
 
-      <div style={{
-        width: '34px', height: '34px', borderRadius: '50%',
-        background: 'linear-gradient(135deg, #7c3aed, #00d4ff)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '12px', fontWeight: 700, color: '#fff',
-        cursor: 'pointer', flexShrink: 0,
-        border: '2px solid #1e2d45',
-      }}>
+      <div
+        className="ml-auto flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border-2 border-[#1e2d45] text-[12px] font-bold text-white md:ml-0"
+        style={{
+          background: 'linear-gradient(135deg, #7c3aed, #00d4ff)',
+        }}
+      >
         {initials}
       </div>
     </div>
