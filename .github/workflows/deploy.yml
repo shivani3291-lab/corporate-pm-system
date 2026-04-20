@@ -83,8 +83,11 @@ jobs:
         run: |
           cp package.json dist/
           cp -r prisma dist/
+          cp startup.sh dist/
+          chmod +x dist/startup.sh
           cd dist
           npm install --omit=dev
+          test -f node_modules/.prisma/client/default.js
 
       - name: Fix start script in package.json
         working-directory: backend/dist
@@ -92,7 +95,7 @@ jobs:
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-            pkg.scripts.start = 'node index.js';
+            pkg.scripts.start = 'prisma generate && node index.js';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
 
