@@ -78,6 +78,8 @@ jobs:
 
       - name: Prepare deployment package
         working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           cp package.json dist/
           cp -r prisma dist/
