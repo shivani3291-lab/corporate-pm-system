@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
@@ -181,10 +181,10 @@ export default function Login() {
           }}>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               Don't have an account?{' '}
-              <a href="/register" style={{
+              <Link to="/register" style={{
                 color: 'var(--accent-cyan)',
                 fontWeight: 500, textDecoration: 'none',
-              }}>Create one</a>
+              }}>Create one</Link>
             </p>
           </div>
         </div>
