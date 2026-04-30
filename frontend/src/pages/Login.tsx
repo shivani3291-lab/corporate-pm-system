@@ -193,7 +193,7 @@ export default function Login() {
           textAlign: 'center', marginTop: '20px',
           fontSize: '11px', color: 'var(--text-muted)',
         }}>
-          Corporate Project Management System
+          Echelon — Intelligent Project Management
         </p>
       </div>
     </div>

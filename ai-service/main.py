@@ -11,6 +11,7 @@ from models.classifier import classify_document
 from models.delay_predictor import predict_delay
 from models.health_pipeline import analyze_project_health
 from models.search import semantic_search
+from models.auto_prioritizer import auto_prioritize_tasks
 
 app = FastAPI(title="Corporate PM AI Service", version="1.0.0")
 
@@ -87,6 +88,35 @@ class AnalyzeProjectHealthResponse(BaseModel):
     riskScore: int
     alerts: list[AlertItemOut]
     escalatedTasks: list[EscalatedTaskOut]
+
+
+class AutoPrioritizeTaskItem(BaseModel):
+    taskId: int | None = None
+    dueDate: str | None = None
+    priority: str | None = None
+    status: str | None = None
+    isMilestone: bool = False
+    dependencyCount: int = 0
+    hoursEstimated: float = 8.0
+
+
+class AutoPrioritizeRequest(BaseModel):
+    projectId: int = Field(ge=1)
+    projectRiskScore: int = Field(default=50, ge=0, le=100)
+    tasks: list[AutoPrioritizeTaskItem] = Field(default_factory=list)
+
+
+class PriorityRecommendation(BaseModel):
+    taskId: int | None = None
+    currentPriority: str
+    recommendedPriority: str
+    confidence: float
+    reason: str
+
+
+class AutoPrioritizeResponse(BaseModel):
+    projectId: int
+    recommendations: list[PriorityRecommendation]
 
 
 @app.get("/health")
@@ -172,5 +202,27 @@ def post_analyze_project_health(
                 reason=str(e["reason"]),
             )
             for e in raw["escalatedTasks"]
+        ],
+    )
+
+
+@app.post("/auto-prioritize", response_model=AutoPrioritizeResponse)
+def post_auto_prioritize(body: AutoPrioritizeRequest) -> AutoPrioritizeResponse:
+    try:
+        tasks_raw = [t.model_dump() for t in body.tasks]
+        results = auto_prioritize_tasks(tasks_raw, project_risk_score=body.projectRiskScore)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return AutoPrioritizeResponse(
+        projectId=body.projectId,
+        recommendations=[
+            PriorityRecommendation(
+                taskId=r.get("taskId"),
+                currentPriority=str(r.get("currentPriority", "Medium")),
+                recommendedPriority=str(r.get("recommendedPriority", "Medium")),
+                confidence=float(r.get("confidence", 0)),
+                reason=str(r.get("reason", "")),
+            )
+            for r in results
         ],
     )

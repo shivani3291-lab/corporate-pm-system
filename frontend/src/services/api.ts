@@ -93,6 +93,25 @@ export const alertsAPI = {
     >('/alerts'),
 }
 
+export const assignmentsAPI = {
+  getAll: (params?: { projectId?: number; employeeId?: number }) =>
+    api.get<
+      Array<{
+        AssignmentID: number
+        EmployeeID: number
+        ProjectID: number
+        RoleInProject: string | null
+        employee: { EmployeeID: number; FirstName: string; LastName: string; Role: string | null }
+        project: { ProjectID: number; ProjectName: string }
+      }>
+    >('/assignments', { params }),
+  create: (data: { employeeId: number; projectId: number; roleInProject?: string }) =>
+    api.post('/assignments', data),
+  update: (id: number, data: { roleInProject: string }) =>
+    api.put(`/assignments/${id}`, data),
+  delete: (id: number) => api.delete(`/assignments/${id}`),
+}
+
 export const aiAPI = {
   classifyDocument: (title: string) =>
     api.post<{ category: string; confidence: number }>('/ai/classify-document', {
@@ -129,6 +148,17 @@ export const aiAPI = {
         reason: string
       }>
     }>('/ai/analyze-project-health', { projectId, persist }),
+  autoPrioritize: (projectId: number) =>
+    api.post<{
+      projectId: number
+      recommendations: Array<{
+        taskId: number | null
+        currentPriority: string
+        recommendedPriority: string
+        confidence: number
+        reason: string
+      }>
+    }>('/ai/auto-prioritize', { projectId }),
 }
 
 export default api

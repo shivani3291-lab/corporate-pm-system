@@ -1,19 +1,37 @@
 """
 NLP semantic search: sentence-transformers embeddings + FAISS cosine similarity (Feature 2).
+
+sentence-transformers requires torch (~114MB). If not installed, semantic search
+is unavailable but the service still starts — the backend falls back to keyword search.
 """
 
 from __future__ import annotations
 
+from typing import Any
+
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
-_MODEL: SentenceTransformer | None = None
+_MODEL: Any | None = None
+_ST_AVAILABLE: bool | None = None
 
 
-def _get_model() -> SentenceTransformer:
+def _check_available() -> bool:
+    global _ST_AVAILABLE
+    if _ST_AVAILABLE is not None:
+        return _ST_AVAILABLE
+    try:
+        import sentence_transformers  # noqa: F401
+        _ST_AVAILABLE = True
+    except ImportError:
+        _ST_AVAILABLE = False
+    return _ST_AVAILABLE
+
+
+def _get_model() -> Any:
     global _MODEL
     if _MODEL is None:
+        from sentence_transformers import SentenceTransformer
         _MODEL = SentenceTransformer("all-MiniLM-L6-v2")
     return _MODEL
 
@@ -33,6 +51,9 @@ def semantic_search(
         raise ValueError("query is required")
     if not items:
         return []
+
+    if not _check_available():
+        raise ValueError("sentence-transformers not installed — semantic search unavailable")
 
     limit = max(1, min(int(limit), 50))
     k = min(limit, len(items))

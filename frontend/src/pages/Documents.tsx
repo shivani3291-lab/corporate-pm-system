@@ -303,14 +303,11 @@ export default function Documents() {
     <Layout title="Documents" subtitle={`${documents.length} documents stored`}>
       <div style={{ maxWidth: '1400px' }}>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: '20px',
-        }}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {categoryNames.map(c => (
               <button key={c} onClick={() => setFilter(c)} style={{
-                padding: '5px 14px', borderRadius: '20px',
+                padding: '5px 12px', borderRadius: '20px',
                 fontSize: '12px', fontWeight: 500, cursor: 'pointer',
                 border: filter === c ? 'none' : '1px solid #1e2d45',
                 background: filter === c ? '#00d4ff' : 'transparent',

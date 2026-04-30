@@ -2,12 +2,15 @@ import type { CSSProperties } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useSidebar } from '../../context/SidebarContext'
+import { useQuery } from '@tanstack/react-query'
+import { alertsAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const navItems = [
   { path: '/dashboard', icon: '⬡', label: 'Dashboard', section: 'Main' },
   { path: '/projects', icon: '◈', label: 'Projects', section: 'Main' },
   { path: '/tasks', icon: '◇', label: 'Tasks', section: 'Main' },
+  { path: '/alerts', icon: '✦', label: 'Alerts', section: 'Main' },
   { path: '/documents', icon: '▦', label: 'Documents', section: 'Resources' },
   { path: '/employees', icon: '◉', label: 'Employees', section: 'Resources' },
   { path: '/categories', icon: '◫', label: 'Categories', section: 'Resources' },
@@ -19,6 +22,14 @@ export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { collapsed, toggle, isMobile, mobileNavOpen, closeMobileNav } = useSidebar()
+
+  const { data: alerts = [] } = useQuery({
+    queryKey: ['predictive-alerts'],
+    queryFn: () => alertsAPI.getAll().then((r) => r.data),
+    staleTime: 300_000,
+  })
+
+  const criticalCount = alerts.filter((a: any) => a.Severity === 'Critical').length
 
   const handleLogout = () => {
     closeMobileNav()
@@ -110,12 +121,12 @@ export default function Sidebar() {
                 fontSize: '16px', fontWeight: 800,
                 color: '#00d4ff',
                 letterSpacing: '0.5px',
-              }}>CorpPM</div>
+              }}>Echelon</div>
               <div style={{
                 fontSize: '10px', color: '#b8c2d6',
                 marginTop: '2px', letterSpacing: '1.5px',
                 textTransform: 'uppercase',
-              }}>Project Management</div>
+              }}>Intelligent Project Management</div>
             </div>
           )}
           {narrow && (
@@ -123,7 +134,7 @@ export default function Sidebar() {
               fontFamily: 'Syne, sans-serif',
               fontSize: '18px', fontWeight: 800,
               color: '#00d4ff',
-            }}>C</div>
+            }}>E</div>
           )}
         </div>
         {!isMobile && (
@@ -217,7 +228,19 @@ export default function Sidebar() {
                   }}>
                     {item.icon}
                   </span>
-                  {!narrow && item.label}
+                  {!narrow && (
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                  )}
+                  {!narrow && item.path === '/alerts' && criticalCount > 0 && (
+                    <span style={{
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '8px',
+                      background: 'rgba(239,68,68,0.25)',
+                      color: '#ef4444',
+                    }}>{criticalCount}</span>
+                  )}
                 </NavLink>
               ))}
           </div>

@@ -13,6 +13,9 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         LastName: true,
         Email: true,
         Role: true,
+        assignments: {
+          include: { project: { select: { ProjectID: true, ProjectName: true } } },
+        },
       }
     })
     res.json(employees)

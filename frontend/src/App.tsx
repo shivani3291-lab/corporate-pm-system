@@ -8,6 +8,7 @@ import Tasks from './pages/Tasks'
 import Documents from './pages/Documents'
 import Employees from './pages/Employees'
 import Categories from './pages/Categories'
+import Alerts from './pages/Alerts'
 import Layout from './components/layout/Layout'
 import type { ReactNode } from 'react'
 
@@ -45,6 +46,9 @@ export default function App() {
 
       <Route path="/categories" element={
         <ProtectedRoute><Categories /></ProtectedRoute>
+      } />
+      <Route path="/alerts" element={
+        <ProtectedRoute><Alerts /></ProtectedRoute>
       } />
     </Routes>
   )

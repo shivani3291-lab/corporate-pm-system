@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/layout/Layout'
-import { projectsAPI, aiAPI, tasksAPI } from '../services/api'
+import { projectsAPI, aiAPI, tasksAPI, assignmentsAPI, employeesAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 function DelayRiskBadge({
@@ -242,6 +242,13 @@ export default function Projects() {
   const [showModal, setShowModal] = useState(false)
   const [editProject, setEditProject] = useState<any>(null)
   const [filter, setFilter] = useState('All')
+  const [healthProject, setHealthProject] = useState<number | null>(null)
+  const [healthResult, setHealthResult] = useState<any>(null)
+  const [healthLoading, setHealthLoading] = useState(false)
+  const [autoPrioProject, setAutoPrioProject] = useState<number | null>(null)
+  const [autoPrioResult, setAutoPrioResult] = useState<any>(null)
+  const [autoPrioLoading, setAutoPrioLoading] = useState(false)
+  const [assignProject, setAssignProject] = useState<number | null>(null)
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
@@ -251,6 +258,16 @@ export default function Projects() {
   const { data: allTasks = [] } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => tasksAPI.getAll().then((r) => r.data),
+  })
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => employeesAPI.getAll().then((r) => r.data),
+  })
+
+  const { data: assignments = [] } = useQuery({
+    queryKey: ['assignments'],
+    queryFn: () => assignmentsAPI.getAll().then((r) => r.data),
   })
 
   const taskStatsByProject = useMemo(() => {
@@ -326,6 +343,60 @@ export default function Projects() {
     onError: () => toast.error('Failed to delete project'),
   })
 
+  const assignMutation = useMutation({
+    mutationFn: (data: { employeeId: number; projectId: number; roleInProject?: string }) =>
+      assignmentsAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('Employee assigned')
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Assignment failed'),
+  })
+
+  const unassignMutation = useMutation({
+    mutationFn: (id: number) => assignmentsAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('Assignment removed')
+    },
+    onError: () => toast.error('Failed to remove assignment'),
+  })
+
+  const runHealthAnalysis = async (projectId: number) => {
+    setHealthProject(projectId)
+    setHealthResult(null)
+    setHealthLoading(true)
+    try {
+      const { data } = await aiAPI.analyzeProjectHealth(projectId, true)
+      setHealthResult(data)
+      queryClient.invalidateQueries({ queryKey: ['predictive-alerts'] })
+      toast.success('Health analysis complete')
+    } catch {
+      toast.error('Health analysis failed (is the AI service running?)')
+      setHealthProject(null)
+    } finally {
+      setHealthLoading(false)
+    }
+  }
+
+  const runAutoPrioritize = async (projectId: number) => {
+    setAutoPrioProject(projectId)
+    setAutoPrioResult(null)
+    setAutoPrioLoading(true)
+    try {
+      const { data } = await aiAPI.autoPrioritize(projectId)
+      setAutoPrioResult(data)
+      toast.success('Priority recommendations generated')
+    } catch {
+      toast.error('Auto-prioritization failed (is the AI service running?)')
+      setAutoPrioProject(null)
+    } finally {
+      setAutoPrioLoading(false)
+    }
+  }
+
   const statuses = ['All', 'Active', 'In Progress', 'Completed', 'On Hold', 'Pending']
 
   const filtered = filter === 'All'
@@ -360,17 +431,14 @@ export default function Projects() {
     <Layout title="Projects" subtitle={`${projects.length} initiatives · higher schedule risk shown first`}>
       <div style={{ maxWidth: '1400px' }}>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: '24px',
-        }}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', minWidth: 0,  }}>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', minWidth: 0 }}>
             {statuses.map(s => (
               <button
                 key={s}
                 onClick={() => setFilter(s)}
                 style={{
-                  padding: '6px 14px', borderRadius: '20px',
+                  padding: '5px 12px', borderRadius: '20px',
                   fontSize: '12px', fontWeight: 500, cursor: 'pointer',
                   border: filter === s ? 'none' : '1px solid #1e2d45',
                   background: filter === s ? '#00d4ff' : 'transparent',
@@ -429,7 +497,7 @@ export default function Projects() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: '16px',
           }}>
             {sortedFiltered.map((project: any) => {
@@ -621,6 +689,53 @@ export default function Projects() {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       type="button"
+                      onClick={(e) => { e.stopPropagation(); runHealthAnalysis(project.ProjectID) }}
+                      title="Run AI health analysis"
+                      style={{
+                        flex: 1, padding: '7px',
+                        background: 'rgba(124,58,237,0.08)',
+                        border: '1px solid rgba(124,58,237,0.2)',
+                        borderRadius: '7px', color: '#a78bfa',
+                        fontSize: '11px', cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.14)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.08)')}
+                    >Health Check</button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); runAutoPrioritize(project.ProjectID) }}
+                      title="AI task prioritization"
+                      style={{
+                        flex: 1, padding: '7px',
+                        background: 'rgba(245,158,11,0.08)',
+                        border: '1px solid rgba(245,158,11,0.2)',
+                        borderRadius: '7px', color: '#fcd34d',
+                        fontSize: '11px', cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(245,158,11,0.14)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(245,158,11,0.08)')}
+                    >Auto-Prioritize</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setAssignProject(project.ProjectID) }}
+                      title="Assign team member"
+                      style={{
+                        flex: 1, padding: '7px',
+                        background: 'rgba(16,185,129,0.06)',
+                        border: '1px solid rgba(16,185,129,0.15)',
+                        borderRadius: '7px', color: '#10b981',
+                        fontSize: '11px', cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.12)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.06)')}
+                    >Assign Member</button>
+                    <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); setEditProject(project) }}
                       style={{
                         flex: 1, padding: '7px',
@@ -667,6 +782,252 @@ export default function Projects() {
           initial={editProject}
           loading={createMutation.isPending || updateMutation.isPending}
         />
+      )}
+
+      {/* Health Analysis Modal */}
+      {healthProject !== null && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setHealthProject(null); setHealthResult(null) } }}
+        >
+          <div style={{
+            background: '#111827', border: '1px solid #1e2d45',
+            borderRadius: '16px', padding: '24px', maxWidth: '560px', width: '100%',
+            maxHeight: '80vh', overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#f0f4ff' }}>
+                Project Health Analysis
+              </h3>
+              <button onClick={() => { setHealthProject(null); setHealthResult(null) }} style={{ background: 'none', border: 'none', color: '#b8c2d6', fontSize: '22px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            {healthLoading && (
+              <div style={{ textAlign: 'center', padding: '30px' }}>
+                <div style={{ fontSize: '13px', color: '#b8c2d6' }}>Running AI health analysis...</div>
+              </div>
+            )}
+
+            {healthResult && (
+              <div>
+                <div style={{
+                  display: 'flex', gap: '12px', marginBottom: '16px',
+                  padding: '14px', borderRadius: '10px',
+                  background: healthResult.riskLevel === 'On Track' ? 'rgba(16,185,129,0.08)' : healthResult.riskLevel === 'At Risk' ? 'rgba(245,158,11,0.08)' : 'rgba(239,68,68,0.08)',
+                  border: `1px solid ${healthResult.riskLevel === 'On Track' ? 'rgba(16,185,129,0.25)' : healthResult.riskLevel === 'At Risk' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '11px', color: '#b8c2d6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Risk Level</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 800, color: healthResult.riskLevel === 'On Track' ? '#10b981' : healthResult.riskLevel === 'At Risk' ? '#f59e0b' : '#ef4444' }}>
+                      {healthResult.riskLevel}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', color: '#b8c2d6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Risk Score</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', fontWeight: 800, color: '#f0f4ff' }}>{healthResult.riskScore}</div>
+                  </div>
+                </div>
+
+                {healthResult.alerts?.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Alerts ({healthResult.alerts.length})</div>
+                    {healthResult.alerts.map((a: any, i: number) => (
+                      <div key={i} style={{ padding: '10px', marginBottom: '6px', borderRadius: '8px', background: '#0d1526', border: '1px solid #1e2d45' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, background: a.severity === 'Critical' ? 'rgba(239,68,68,0.25)' : a.severity === 'Warning' ? 'rgba(245,158,11,0.25)' : 'rgba(0,212,255,0.12)', color: a.severity === 'Critical' ? '#ef4444' : a.severity === 'Warning' ? '#f59e0b' : '#b8c2d6' }}>{a.severity}</span>
+                          <span style={{ fontSize: '10px', color: '#7c3aed' }}>{a.type}</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#c8d8f0', lineHeight: 1.5 }}>{a.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {healthResult.escalatedTasks?.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Escalated Tasks ({healthResult.escalatedTasks.length})</div>
+                    {healthResult.escalatedTasks.map((t: any, i: number) => (
+                      <div key={i} style={{ padding: '10px', marginBottom: '6px', borderRadius: '8px', background: '#0d1526', border: '1px solid #1e2d45' }}>
+                        <div style={{ fontSize: '12px', color: '#f0f4ff', marginBottom: '4px' }}>
+                          Task #{t.taskId}: {t.fromPriority} → {t.toPriority}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#b8c2d6' }}>{t.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {healthResult.alerts?.length === 0 && healthResult.escalatedTasks?.length === 0 && (
+                  <div style={{ fontSize: '13px', color: '#b8c2d6', textAlign: 'center', padding: '16px' }}>
+                    No alerts or escalations detected. Project is healthy.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Prioritize Modal */}
+      {autoPrioProject !== null && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setAutoPrioProject(null); setAutoPrioResult(null) } }}
+        >
+          <div style={{
+            background: '#111827', border: '1px solid #1e2d45',
+            borderRadius: '16px', padding: '24px', maxWidth: '560px', width: '100%',
+            maxHeight: '80vh', overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#f0f4ff' }}>
+                AI Task Auto-Prioritization
+              </h3>
+              <button onClick={() => { setAutoPrioProject(null); setAutoPrioResult(null) }} style={{ background: 'none', border: 'none', color: '#b8c2d6', fontSize: '22px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            {autoPrioLoading && (
+              <div style={{ textAlign: 'center', padding: '30px' }}>
+                <div style={{ fontSize: '13px', color: '#b8c2d6' }}>Analyzing tasks...</div>
+              </div>
+            )}
+
+            {autoPrioResult && (
+              <div>
+                {autoPrioResult.recommendations?.length === 0 ? (
+                  <div style={{ fontSize: '13px', color: '#b8c2d6', textAlign: 'center', padding: '16px' }}>
+                    No active tasks to prioritize.
+                  </div>
+                ) : (
+                  autoPrioResult.recommendations?.map((rec: any, i: number) => {
+                    const changed = rec.currentPriority !== rec.recommendedPriority
+                    return (
+                      <div key={i} style={{
+                        padding: '12px', marginBottom: '8px', borderRadius: '10px',
+                        background: changed ? 'rgba(245,158,11,0.06)' : '#0d1526',
+                        border: `1px solid ${changed ? 'rgba(245,158,11,0.2)' : '#1e2d45'}`,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#f0f4ff' }}>
+                            Task #{rec.taskId}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, background: 'rgba(107,114,128,0.1)', color: '#9ca3af' }}>
+                              {rec.currentPriority}
+                            </span>
+                            {changed && <span style={{ fontSize: '12px', color: '#f59e0b' }}>→</span>}
+                            {changed && (
+                              <span style={{
+                                fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700,
+                                background: rec.recommendedPriority === 'High' ? 'rgba(239,68,68,0.15)' : rec.recommendedPriority === 'Medium' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+                                color: rec.recommendedPriority === 'High' ? '#ef4444' : rec.recommendedPriority === 'Medium' ? '#f59e0b' : '#10b981',
+                              }}>
+                                {rec.recommendedPriority}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#b8c2d6', lineHeight: 1.4 }}>
+                          {rec.reason}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#4a5568', marginTop: '4px' }}>
+                          Confidence: {Math.round(rec.confidence * 100)}%
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Assign Member Modal */}
+      {assignProject !== null && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setAssignProject(null) }}
+        >
+          <div style={{
+            background: '#111827', border: '1px solid #1e2d45',
+            borderRadius: '16px', padding: '24px', maxWidth: '480px', width: '100%',
+            maxHeight: '80vh', overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#f0f4ff' }}>
+                Team Members
+              </h3>
+              <button onClick={() => setAssignProject(null)} style={{ background: 'none', border: 'none', color: '#b8c2d6', fontSize: '22px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            {/* Current assignments */}
+            {assignments.filter((a: any) => a.ProjectID === assignProject).length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#b8c2d6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Assigned</div>
+                {assignments.filter((a: any) => a.ProjectID === assignProject).map((a: any) => (
+                  <div key={a.AssignmentID} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px', marginBottom: '6px', borderRadius: '8px', background: '#0d1526', border: '1px solid #1e2d45',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', color: '#f0f4ff' }}>{a.employee?.FirstName} {a.employee?.LastName}</div>
+                      <div style={{ fontSize: '10px', color: '#7c3aed' }}>{a.RoleInProject || 'Member'}</div>
+                    </div>
+                    <button
+                      onClick={() => unassignMutation.mutate(a.AssignmentID)}
+                      style={{
+                        padding: '4px 10px', background: 'rgba(239,68,68,0.08)',
+                        border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px',
+                        color: '#ef4444', fontSize: '11px', cursor: 'pointer',
+                      }}
+                    >Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Available employees to assign */}
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#b8c2d6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Add Member</div>
+            {employees.filter((emp: any) => !assignments.some((a: any) => a.ProjectID === assignProject && a.EmployeeID === emp.EmployeeID)).length === 0 ? (
+              <div style={{ fontSize: '12px', color: '#4a5568', padding: '10px', textAlign: 'center' }}>All employees are assigned.</div>
+            ) : (
+              employees
+                .filter((emp: any) => !assignments.some((a: any) => a.ProjectID === assignProject && a.EmployeeID === emp.EmployeeID))
+                .map((emp: any) => (
+                  <div key={emp.EmployeeID} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px', marginBottom: '6px', borderRadius: '8px', background: '#0d1526', border: '1px solid #1e2d45',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', color: '#f0f4ff' }}>{emp.FirstName} {emp.LastName}</div>
+                      <div style={{ fontSize: '10px', color: '#b8c2d6' }}>{emp.Role || 'Staff'}</div>
+                    </div>
+                    <button
+                      onClick={() => assignMutation.mutate({ employeeId: emp.EmployeeID, projectId: assignProject })}
+                      style={{
+                        padding: '4px 12px', background: '#10b981',
+                        border: 'none', borderRadius: '6px',
+                        color: '#0a0f1e', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >Add</button>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
       )}
     </Layout>
   )

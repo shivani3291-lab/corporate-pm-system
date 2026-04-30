@@ -41,10 +41,7 @@ export default function Categories() {
     <Layout title="Categories" subtitle="Document classification groups">
       <div style={{ maxWidth: '1400px' }}>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: '24px',
-        }}>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div style={{ fontSize: '13px', color: '#b8c2d6' }}>
             {categories.length} categories defined
           </div>

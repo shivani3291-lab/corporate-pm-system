@@ -288,4 +288,93 @@ router.post('/analyze-project-health', authenticate, async (req: AuthRequest, re
   }
 })
 
+router.post('/auto-prioritize', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { projectId, projectRiskScore } = req.body as {
+      projectId?: number
+      projectRiskScore?: number
+    }
+
+    if (projectId == null || Number.isNaN(Number(projectId))) {
+      res.status(400).json({ error: 'projectId is required' })
+      return
+    }
+
+    const id = Number(projectId)
+    const tasks = await prisma.task.findMany({
+      where: { ProjectID: id },
+    })
+
+    if (tasks.length === 0) {
+      res.json({ projectId: id, recommendations: [] })
+      return
+    }
+
+    const taskPayloads = tasks.map((t) => ({
+      taskId: t.TaskID,
+      dueDate: t.DueDate ? t.DueDate.toISOString() : null,
+      priority: t.Priority,
+      status: t.Status,
+      isMilestone: false,
+      dependencyCount: 0,
+      hoursEstimated: 8,
+    }))
+
+    let risk = Number(projectRiskScore)
+    if (Number.isNaN(risk) || risk < 0 || risk > 100) {
+      const metrics = await getProjectDelayMetrics(id)
+      if (metrics) {
+        try {
+          const ai = await fetchPredictDelayFromAi(metrics)
+          risk = ai?.riskScore ?? 50
+        } catch {
+          risk = heuristicDelayRisk(metrics).riskScore
+        }
+      } else {
+        risk = 50
+      }
+    }
+
+    try {
+      const url = `${aiServiceBase()}/auto-prioritize`
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: id, projectRiskScore: risk, tasks: taskPayloads }),
+        signal: AbortSignal.timeout(30_000),
+      })
+      if (r.ok) {
+        const data = (await r.json()) as { projectId: number; recommendations: any[] }
+        res.json(data)
+        return
+      }
+    } catch {
+      // fallback below
+    }
+
+    // Heuristic fallback if AI service is unavailable
+    const now = new Date()
+    const recommendations = tasks
+      .filter((t) => t.Status !== 'Completed')
+      .map((t) => {
+        const days = t.DueDate ? Math.ceil((t.DueDate.getTime() - now.getTime()) / 86400000) : 90
+        let rec = 'Medium'
+        if (days < 0 || risk > 75) rec = 'High'
+        else if (days < 21 || risk > 50) rec = 'Medium'
+        else rec = 'Low'
+        return {
+          taskId: t.TaskID,
+          currentPriority: t.Priority || 'Medium',
+          recommendedPriority: rec,
+          confidence: 0.7,
+          reason: days < 0 ? `Overdue by ${Math.abs(days)} day(s).` : `Due in ${days} day(s).`,
+        }
+      })
+
+    res.json({ projectId: id, recommendations })
+  } catch {
+    res.status(500).json({ error: 'Auto-prioritization failed' })
+  }
+})
+
 export default router

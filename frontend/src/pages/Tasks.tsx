@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/layout/Layout'
 import { tasksAPI, projectsAPI } from '../services/api'
+import { useSidebar } from '../context/SidebarContext'
 import toast from 'react-hot-toast'
 
 const STATUS_OPTS = ['Pending', 'In Progress', 'Completed', 'On Hold'] as const
@@ -197,6 +198,7 @@ export default function Tasks() {
   const projectIdParam = searchParams.get('projectId')
   const projectIdFilter = projectIdParam ? parseInt(projectIdParam, 10) : undefined
   const projectIdValid = projectIdFilter !== undefined && !Number.isNaN(projectIdFilter)
+  const { isMobile } = useSidebar()
 
   const [showModal, setShowModal] = useState(false)
   const [editTask, setEditTask] = useState<any>(null)
@@ -373,38 +375,29 @@ export default function Tasks() {
           </div>
         )}
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px',
-        }}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {['All', 'Pending', 'In Progress', 'Completed', 'On Hold'].map(s => (
-                <button key={s} onClick={() => setStatusFilter(s)} style={{
-                  padding: '5px 12px', borderRadius: '20px',
-                  fontSize: '12px', fontWeight: 500, cursor: 'pointer',
-                  border: statusFilter === s ? 'none' : '1px solid #1e2d45',
-                  background: statusFilter === s ? '#00d4ff' : 'transparent',
-                  color: statusFilter === s ? '#0a0f1e' : '#b8c2d6',
-                  transition: 'background 0.15s, border-color 0.15s',
-                }}>{s}</button>
-              ))}
-            </div>
-            <div style={{
-              width: '1px', background: '#1e2d45', margin: '0 4px',
-            }} />
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {['All', 'High', 'Medium', 'Low'].map(p => (
-                <button key={p} onClick={() => setPriorityFilter(p)} style={{
-                  padding: '5px 12px', borderRadius: '20px',
-                  fontSize: '12px', fontWeight: 500, cursor: 'pointer',
-                  border: priorityFilter === p ? 'none' : '1px solid #1e2d45',
-                  background: priorityFilter === p ? '#7c3aed' : 'transparent',
-                  color: priorityFilter === p ? '#fff' : '#b8c2d6',
-                  transition: 'background 0.15s',
-                }}>{p}</button>
-              ))}
-            </div>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+            {['All', 'Pending', 'In Progress', 'Completed', 'On Hold'].map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)} style={{
+                padding: '5px 12px', borderRadius: '20px',
+                fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+                border: statusFilter === s ? 'none' : '1px solid #1e2d45',
+                background: statusFilter === s ? '#00d4ff' : 'transparent',
+                color: statusFilter === s ? '#0a0f1e' : '#b8c2d6',
+                transition: 'background 0.15s, border-color 0.15s',
+              }}>{s}</button>
+            ))}
+            <div style={{ width: '1px', background: '#1e2d45', margin: '0 2px' }} />
+            {['All', 'High', 'Medium', 'Low'].map(p => (
+              <button key={p} onClick={() => setPriorityFilter(p)} style={{
+                padding: '5px 12px', borderRadius: '20px',
+                fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+                border: priorityFilter === p ? 'none' : '1px solid #1e2d45',
+                background: priorityFilter === p ? '#7c3aed' : 'transparent',
+                color: priorityFilter === p ? '#fff' : '#b8c2d6',
+                transition: 'background 0.15s',
+              }}>{p}</button>
+            ))}
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -413,7 +406,7 @@ export default function Tasks() {
               border: 'none', borderRadius: '10px',
               padding: '10px 20px', fontSize: '13px',
               fontWeight: 700, fontFamily: 'Syne, sans-serif',
-              cursor: 'pointer',
+              cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >⊕ New Task</button>
         </div>
@@ -494,6 +487,90 @@ export default function Tasks() {
           </div>
         )}
 
+        {/* Mobile card view */}
+        {isMobile && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {isLoading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} className="skeleton" style={{ height: '120px', borderRadius: '12px' }} />
+              ))
+            ) : filtered.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px',
+                background: '#111827', border: '1px solid #1e2d45',
+                borderRadius: '12px', color: '#b8c2d6', fontSize: '13px',
+              }}>No tasks yet.</div>
+            ) : (
+              filtered.map((task: any) => {
+                const overdue = isOverdue(task)
+                return (
+                <div key={task.TaskID} style={{
+                  background: overdue ? 'rgba(239,68,68,0.06)' : '#111827',
+                  border: `1px solid ${overdue ? 'rgba(239,68,68,0.25)' : '#1e2d45'}`,
+                  borderRadius: '12px', padding: '16px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '14px', fontWeight: 600, color: task.Status === 'Completed' ? '#4a5568' : '#f0f4ff',
+                        textDecoration: task.Status === 'Completed' ? 'line-through' : 'none',
+                        marginBottom: '4px',
+                      }}>
+                        {overdue && <span style={{ color: '#fca5a5' }}>⚠ </span>}
+                        {task.TaskName}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#b8c2d6' }}>
+                        {task.project?.ProjectName || 'No project'}
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(task.TaskID)}
+                      onChange={() => toggleSelect(task.TaskID)}
+                      style={{ cursor: 'pointer', marginTop: '4px' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
+                      background: overdue ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.12)',
+                      color: overdue ? '#fecaca' : '#f59e0b',
+                    }}>
+                      {overdue ? 'Overdue' : (task.DueDate ? new Date(task.DueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date')}
+                    </span>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
+                      background: task.Priority === 'High' ? 'rgba(239,68,68,0.12)' : task.Priority === 'Low' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                      color: task.Priority === 'High' ? '#ef4444' : task.Priority === 'Low' ? '#10b981' : '#f59e0b',
+                    }}>{task.Priority || 'Medium'}</span>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
+                      background: task.Status === 'Completed' ? 'rgba(16,185,129,0.12)' : task.Status === 'In Progress' ? 'rgba(124,58,237,0.12)' : 'rgba(245,158,11,0.12)',
+                      color: task.Status === 'Completed' ? '#10b981' : task.Status === 'In Progress' ? '#7c3aed' : '#f59e0b',
+                    }}>{task.Status || 'Pending'}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setEditTask(task)} style={{
+                      flex: 1, padding: '8px',
+                      background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
+                      borderRadius: '8px', color: '#00d4ff', fontSize: '12px', cursor: 'pointer',
+                    }}>Edit</button>
+                    <button onClick={() => {
+                      if (confirm(`Remove "${task.TaskName}"?`)) deleteMutation.mutate(task.TaskID)
+                    }} style={{
+                      padding: '8px 12px',
+                      background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
+                      borderRadius: '8px', color: '#ef4444', fontSize: '12px', cursor: 'pointer',
+                    }}>Delete</button>
+                  </div>
+                </div>
+              )})
+            )}
+          </div>
+        )}
+
+        {/* Desktop table view */}
+        {!isMobile && (
         <div
           style={{
             background: '#111827',
@@ -715,6 +792,7 @@ export default function Tasks() {
           </div>
           </div>
         </div>
+        )}
       </div>
 
       {(showModal || editTask) && (

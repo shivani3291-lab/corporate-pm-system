@@ -15,6 +15,7 @@ import documentRoutes from './routes/documents'
 import categoryRoutes from './routes/categories'
 import aiRoutes from './routes/ai'
 import alertsRoutes from './routes/alerts'
+import assignmentRoutes from './routes/assignments'
 import { runPredictiveAlertsJob } from './jobs/predictiveAlerts'
 
 const app = express()
@@ -39,6 +40,7 @@ app.use('/api/documents', documentRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/alerts', alertsRoutes)
+app.use('/api/assignments', assignmentRoutes)
 
 const port = Number(process.env.PORT) || 5000
 
