@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/layout/Layout'
 import { tasksAPI, projectsAPI } from '../services/api'
-import { useSidebar } from '../context/SidebarContext'
 import toast from 'react-hot-toast'
 
 const STATUS_OPTS = ['Pending', 'In Progress', 'Completed', 'On Hold'] as const
@@ -32,6 +31,7 @@ function TaskModal({
       position: 'fixed', inset: 0, zIndex: 100,
       background: 'rgba(0,0,0,0.7)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '16px',
     }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
@@ -198,7 +198,6 @@ export default function Tasks() {
   const projectIdParam = searchParams.get('projectId')
   const projectIdFilter = projectIdParam ? parseInt(projectIdParam, 10) : undefined
   const projectIdValid = projectIdFilter !== undefined && !Number.isNaN(projectIdFilter)
-  const { isMobile } = useSidebar()
 
   const [showModal, setShowModal] = useState(false)
   const [editTask, setEditTask] = useState<any>(null)
@@ -353,6 +352,7 @@ export default function Tasks() {
             borderRadius: '10px',
             fontSize: '13px',
             color: '#e2e8f0',
+            flexWrap: 'wrap',
           }}>
             <span>
               Showing tasks for <strong style={{ color: '#00d4ff' }}>{filteredProject.ProjectName}</strong>
@@ -375,8 +375,15 @@ export default function Tasks() {
           </div>
         )}
 
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+        {/* Filter row */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {['All', 'Pending', 'In Progress', 'Completed', 'On Hold'].map(s => (
               <button key={s} onClick={() => setStatusFilter(s)} style={{
                 padding: '5px 12px', borderRadius: '20px',
@@ -387,7 +394,9 @@ export default function Tasks() {
                 transition: 'background 0.15s, border-color 0.15s',
               }}>{s}</button>
             ))}
-            <div style={{ width: '1px', background: '#1e2d45', margin: '0 2px' }} />
+          </div>
+          <div style={{ width: '1px', height: '20px', background: '#1e2d45' }} />
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {['All', 'High', 'Medium', 'Low'].map(p => (
               <button key={p} onClick={() => setPriorityFilter(p)} style={{
                 padding: '5px 12px', borderRadius: '20px',
@@ -404,9 +413,10 @@ export default function Tasks() {
             style={{
               background: '#00d4ff', color: '#0a0f1e',
               border: 'none', borderRadius: '10px',
-              padding: '10px 20px', fontSize: '13px',
+              padding: '8px 16px', fontSize: '13px',
               fontWeight: 700, fontFamily: 'Syne, sans-serif',
-              cursor: 'pointer', whiteSpace: 'nowrap',
+              cursor: 'pointer', marginLeft: 'auto',
+              whiteSpace: 'nowrap',
             }}
           >⊕ New Task</button>
         </div>
@@ -487,90 +497,7 @@ export default function Tasks() {
           </div>
         )}
 
-        {/* Mobile card view */}
-        {isMobile && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {isLoading ? (
-              [1, 2, 3].map(i => (
-                <div key={i} className="skeleton" style={{ height: '120px', borderRadius: '12px' }} />
-              ))
-            ) : filtered.length === 0 ? (
-              <div style={{
-                textAlign: 'center', padding: '40px 20px',
-                background: '#111827', border: '1px solid #1e2d45',
-                borderRadius: '12px', color: '#b8c2d6', fontSize: '13px',
-              }}>No tasks yet.</div>
-            ) : (
-              filtered.map((task: any) => {
-                const overdue = isOverdue(task)
-                return (
-                <div key={task.TaskID} style={{
-                  background: overdue ? 'rgba(239,68,68,0.06)' : '#111827',
-                  border: `1px solid ${overdue ? 'rgba(239,68,68,0.25)' : '#1e2d45'}`,
-                  borderRadius: '12px', padding: '16px',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: '14px', fontWeight: 600, color: task.Status === 'Completed' ? '#4a5568' : '#f0f4ff',
-                        textDecoration: task.Status === 'Completed' ? 'line-through' : 'none',
-                        marginBottom: '4px',
-                      }}>
-                        {overdue && <span style={{ color: '#fca5a5' }}>⚠ </span>}
-                        {task.TaskName}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#b8c2d6' }}>
-                        {task.project?.ProjectName || 'No project'}
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(task.TaskID)}
-                      onChange={() => toggleSelect(task.TaskID)}
-                      style={{ cursor: 'pointer', marginTop: '4px' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
-                      background: overdue ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.12)',
-                      color: overdue ? '#fecaca' : '#f59e0b',
-                    }}>
-                      {overdue ? 'Overdue' : (task.DueDate ? new Date(task.DueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date')}
-                    </span>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
-                      background: task.Priority === 'High' ? 'rgba(239,68,68,0.12)' : task.Priority === 'Low' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                      color: task.Priority === 'High' ? '#ef4444' : task.Priority === 'Low' ? '#10b981' : '#f59e0b',
-                    }}>{task.Priority || 'Medium'}</span>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
-                      background: task.Status === 'Completed' ? 'rgba(16,185,129,0.12)' : task.Status === 'In Progress' ? 'rgba(124,58,237,0.12)' : 'rgba(245,158,11,0.12)',
-                      color: task.Status === 'Completed' ? '#10b981' : task.Status === 'In Progress' ? '#7c3aed' : '#f59e0b',
-                    }}>{task.Status || 'Pending'}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => setEditTask(task)} style={{
-                      flex: 1, padding: '8px',
-                      background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
-                      borderRadius: '8px', color: '#00d4ff', fontSize: '12px', cursor: 'pointer',
-                    }}>Edit</button>
-                    <button onClick={() => {
-                      if (confirm(`Remove "${task.TaskName}"?`)) deleteMutation.mutate(task.TaskID)
-                    }} style={{
-                      padding: '8px 12px',
-                      background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
-                      borderRadius: '8px', color: '#ef4444', fontSize: '12px', cursor: 'pointer',
-                    }}>Delete</button>
-                  </div>
-                </div>
-              )})
-            )}
-          </div>
-        )}
-
-        {/* Desktop table view */}
-        {!isMobile && (
+        {/* Task list — table on desktop, cards on mobile via CSS */}
         <div
           style={{
             background: '#111827',
@@ -578,221 +505,290 @@ export default function Tasks() {
             borderRadius: '12px',
             overflow: 'hidden',
           }}
-          className="min-w-0"
         >
-          <div className="overflow-x-auto">
-          <div style={{ minWidth: '720px' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '36px 2fr 1fr 1fr 1fr 1fr 110px',
-            padding: '12px 20px',
-            borderBottom: '1px solid #1e2d45',
-            fontSize: '11px', fontWeight: 600,
-            color: '#b8c2d6', textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
-            <input
-              type="checkbox"
-              checked={allSelected}
-              onChange={toggleSelectAll}
-              style={{ cursor: 'pointer' }}
-              title="Select visible"
-            />
-            <span>Task</span>
-            <span>Project</span>
-            <span>Due Date</span>
-            <span>Priority</span>
-            <span>Status</span>
-            <span>Actions</span>
-          </div>
-
-          {isLoading ? (
-            [1, 2, 3, 4].map(i => (
-              <div key={i} style={{
-                padding: '16px 20px',
+          {/* Desktop table - hidden on mobile */}
+          <div className="hidden md:block overflow-x-auto">
+            <div style={{ minWidth: '720px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '36px 2fr 1fr 1fr 1fr 1fr 110px',
+                padding: '12px 20px',
                 borderBottom: '1px solid #1e2d45',
+                fontSize: '11px', fontWeight: 600,
+                color: '#b8c2d6', textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                alignItems: 'center',
+                gap: '8px',
               }}>
-                <div className="skeleton" style={{ height: '16px', width: '60%' }} />
-              </div>
-            ))
-          ) : filtered.length === 0 ? (
-            <div style={{
-              padding: '60px 20px', textAlign: 'center',
-              color: '#b8c2d6', fontSize: '13px',
-            }}>
-              No tasks yet. Create one or get suggestions.
-            </div>
-          ) : (
-            filtered.map((task: any) => {
-              const overdue = isOverdue(task)
-              const hint = taskAiHint(task, overdue)
-              const rowBg = overdue
-                ? 'linear-gradient(90deg, rgba(127,29,29,0.35) 0%, rgba(239,68,68,0.08) 12%, transparent 55%)'
-                : 'transparent'
-              return (
-              <div
-                key={task.TaskID}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '36px 2fr 1fr 1fr 1fr 1fr 110px',
-                  padding: '14px 20px',
-                  borderBottom: '1px solid #1e2d45',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'background 0.15s, box-shadow 0.15s',
-                  background: rowBg,
-                  boxShadow: overdue ? 'inset 3px 0 0 #ef4444' : 'none',
-                }}
-                onMouseEnter={e => {
-                  if (!overdue) e.currentTarget.style.background = '#0d1526'
-                  else e.currentTarget.style.background =
-                    'linear-gradient(90deg, rgba(127,29,29,0.45) 0%, rgba(239,68,68,0.12) 14%, rgba(239,68,68,0.04) 100%)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = rowBg
-                }}
-              >
                 <input
                   type="checkbox"
-                  checked={selected.has(task.TaskID)}
-                  onChange={() => toggleSelect(task.TaskID)}
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
                   style={{ cursor: 'pointer' }}
+                  title="Select visible"
                 />
-                <div>
-                  <div style={{
-                    fontSize: '13px', fontWeight: 500,
-                    color: task.Status === 'Completed' ? '#4a5568' : '#f0f4ff',
-                    textDecoration: task.Status === 'Completed' ? 'line-through' : 'none',
-                    marginBottom: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    flexWrap: 'wrap',
-                  }}>
-                    {overdue && <span style={{ color: '#fca5a5', fontSize: '14px' }} aria-hidden>⚠</span>}
-                    <span>{task.TaskName}</span>
-                  </div>
-                  {overdue && (
-                    <span style={{
-                      fontSize: '10px', color: '#fecaca',
-                      background: 'rgba(239,68,68,0.2)',
-                      padding: '2px 8px', borderRadius: '4px',
-                      fontWeight: 600,
-                    }}>Overdue</span>
-                  )}
-                  {hint && (
-                    <div style={{
-                      fontSize: '10px',
-                      color: '#a5b4fc',
-                      marginTop: '6px',
-                      lineHeight: 1.4,
-                      maxWidth: '420px',
-                    }}>
-                      {hint}
-                    </div>
-                  )}
-                </div>
-                <div style={{ fontSize: '12px', color: '#b8c2d6' }}>
-                  {task.project?.ProjectName || '—'}
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: overdue ? '#fca5a5' : '#b8c2d6',
-                  fontWeight: overdue ? 600 : 400,
-                }}>
-                  {task.DueDate
-                    ? new Date(task.DueDate).toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', year: 'numeric'
-                    })
-                    : '—'}
-                </div>
-                <div>
-                  <select
-                    value={task.Priority || 'Medium'}
-                    onChange={(e) =>
-                      patchTaskMutation.mutate({
-                        id: task.TaskID,
-                        data: { priority: e.target.value },
-                      })
-                    }
-                    style={{
-                      padding: '6px 8px',
-                      fontSize: '11px',
-                      borderRadius: '6px',
-                      border: '1px solid #1e2d45',
-                      background: '#0d1526',
-                      color: '#f0f4ff',
-                      cursor: 'pointer',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    {PRIORITY_OPTS.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <select
-                    value={task.Status || 'Pending'}
-                    onChange={(e) =>
-                      patchTaskMutation.mutate({
-                        id: task.TaskID,
-                        data: { status: e.target.value },
-                      })
-                    }
-                    style={{
-                      padding: '6px 8px',
-                      fontSize: '11px',
-                      borderRadius: '6px',
-                      border: '1px solid #1e2d45',
-                      background: '#0d1526',
-                      color: '#f0f4ff',
-                      cursor: 'pointer',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    {STATUS_OPTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => setEditTask(task)}
-                    style={{
-                      padding: '5px 10px',
-                      background: 'rgba(0,212,255,0.06)',
-                      border: '1px solid rgba(0,212,255,0.15)',
-                      borderRadius: '6px', color: '#00d4ff',
-                      fontSize: '11px', cursor: 'pointer',
-                    }}
-                  >Manage</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm(`Remove "${task.TaskName}"?`)) {
-                        deleteMutation.mutate(task.TaskID)
-                      }
-                    }}
-                    style={{
-                      padding: '5px 10px',
-                      background: 'rgba(239,68,68,0.06)',
-                      border: '1px solid rgba(239,68,68,0.15)',
-                      borderRadius: '6px', color: '#ef4444',
-                      fontSize: '11px', cursor: 'pointer',
-                    }}
-                  >Remove</button>
-                </div>
+                <span>Task</span>
+                <span>Project</span>
+                <span>Due Date</span>
+                <span>Priority</span>
+                <span>Status</span>
+                <span>Actions</span>
               </div>
-            )})
-          )}
+
+              {isLoading ? (
+                [1, 2, 3, 4].map(i => (
+                  <div key={i} style={{
+                    padding: '16px 20px',
+                    borderBottom: '1px solid #1e2d45',
+                  }}>
+                    <div className="skeleton" style={{ height: '16px', width: '60%' }} />
+                  </div>
+                ))
+              ) : filtered.length === 0 ? (
+                <div style={{
+                  padding: '60px 20px', textAlign: 'center',
+                  color: '#b8c2d6', fontSize: '13px',
+                }}>
+                  No tasks yet. Create one or get suggestions.
+                </div>
+              ) : (
+                filtered.map((task: any) => {
+                  const overdue = isOverdue(task)
+                  const hint = taskAiHint(task, overdue)
+                  const rowBg = overdue
+                    ? 'linear-gradient(90deg, rgba(127,29,29,0.35) 0%, rgba(239,68,68,0.08) 12%, transparent 55%)'
+                    : 'transparent'
+                  return (
+                  <div
+                    key={task.TaskID}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '36px 2fr 1fr 1fr 1fr 1fr 110px',
+                      padding: '14px 20px',
+                      borderBottom: '1px solid #1e2d45',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'background 0.15s, box-shadow 0.15s',
+                      background: rowBg,
+                      boxShadow: overdue ? 'inset 3px 0 0 #ef4444' : 'none',
+                    }}
+                    onMouseEnter={e => {
+                      if (!overdue) e.currentTarget.style.background = '#0d1526'
+                      else e.currentTarget.style.background =
+                        'linear-gradient(90deg, rgba(127,29,29,0.45) 0%, rgba(239,68,68,0.12) 14%, rgba(239,68,68,0.04) 100%)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = rowBg
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(task.TaskID)}
+                      onChange={() => toggleSelect(task.TaskID)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div>
+                      <div style={{
+                        fontSize: '13px', fontWeight: 500,
+                        color: task.Status === 'Completed' ? '#4a5568' : '#f0f4ff',
+                        textDecoration: task.Status === 'Completed' ? 'line-through' : 'none',
+                        marginBottom: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        flexWrap: 'wrap',
+                      }}>
+                        {overdue && <span style={{ color: '#fca5a5', fontSize: '14px' }} aria-hidden>⚠</span>}
+                        <span>{task.TaskName}</span>
+                      </div>
+                      {overdue && (
+                        <span style={{
+                          fontSize: '10px', color: '#fecaca',
+                          background: 'rgba(239,68,68,0.2)',
+                          padding: '2px 8px', borderRadius: '4px',
+                          fontWeight: 600,
+                        }}>Overdue</span>
+                      )}
+                      {hint && (
+                        <div style={{
+                          fontSize: '10px',
+                          color: '#a5b4fc',
+                          marginTop: '6px',
+                          lineHeight: 1.4,
+                          maxWidth: '420px',
+                        }}>
+                          {hint}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#b8c2d6' }}>
+                      {task.project?.ProjectName || '—'}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: overdue ? '#fca5a5' : '#b8c2d6',
+                      fontWeight: overdue ? 600 : 400,
+                    }}>
+                      {task.DueDate
+                        ? new Date(task.DueDate).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric'
+                        })
+                        : '—'}
+                    </div>
+                    <div>
+                      <select
+                        value={task.Priority || 'Medium'}
+                        onChange={(e) =>
+                          patchTaskMutation.mutate({
+                            id: task.TaskID,
+                            data: { priority: e.target.value },
+                          })
+                        }
+                        style={{
+                          padding: '6px 8px',
+                          fontSize: '11px',
+                          borderRadius: '6px',
+                          border: '1px solid #1e2d45',
+                          background: '#0d1526',
+                          color: '#f0f4ff',
+                          cursor: 'pointer',
+                          maxWidth: '100%',
+                        }}
+                      >
+                        {PRIORITY_OPTS.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <select
+                        value={task.Status || 'Pending'}
+                        onChange={(e) =>
+                          patchTaskMutation.mutate({
+                            id: task.TaskID,
+                            data: { status: e.target.value },
+                          })
+                        }
+                        style={{
+                          padding: '6px 8px',
+                          fontSize: '11px',
+                          borderRadius: '6px',
+                          border: '1px solid #1e2d45',
+                          background: '#0d1526',
+                          color: '#f0f4ff',
+                          cursor: 'pointer',
+                          maxWidth: '100%',
+                        }}
+                      >
+                        {STATUS_OPTS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditTask(task)}
+                        style={{
+                          padding: '5px 10px',
+                          background: 'rgba(0,212,255,0.06)',
+                          border: '1px solid rgba(0,212,255,0.15)',
+                          borderRadius: '6px', color: '#00d4ff',
+                          fontSize: '11px', cursor: 'pointer',
+                        }}
+                      >Manage</button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Remove "${task.TaskName}"?`)) {
+                            deleteMutation.mutate(task.TaskID)
+                          }
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          background: 'rgba(239,68,68,0.06)',
+                          border: '1px solid rgba(239,68,68,0.15)',
+                          borderRadius: '6px', color: '#ef4444',
+                          fontSize: '11px', cursor: 'pointer',
+                        }}
+                      >Remove</button>
+                    </div>
+                  </div>
+                )})
+              )}
+            </div>
           </div>
+
+          {/* Mobile cards - shown only on mobile */}
+          <div className="md:hidden" style={{ padding: '12px' }}>
+            {isLoading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} className="skeleton" style={{ height: '100px', borderRadius: '10px', marginBottom: '10px' }} />
+              ))
+            ) : filtered.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px',
+                color: '#b8c2d6', fontSize: '13px',
+              }}>No tasks yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {filtered.map((task: any) => {
+                  const overdue = isOverdue(task)
+                  return (
+                  <div key={task.TaskID} style={{
+                    background: overdue ? 'rgba(239,68,68,0.06)' : '#0d1526',
+                    border: `1px solid ${overdue ? 'rgba(239,68,68,0.25)' : '#1e2d45'}`,
+                    borderRadius: '10px', padding: '14px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: task.Status === 'Completed' ? '#4a5568' : '#f0f4ff', textDecoration: task.Status === 'Completed' ? 'line-through' : 'none' }}>
+                        {overdue && <span style={{ color: '#fca5a5' }}>⚠ </span>}
+                        {task.TaskName}
+                      </div>
+                      <input type="checkbox" checked={selected.has(task.TaskID)} onChange={() => toggleSelect(task.TaskID)} style={{ cursor: 'pointer' }} />
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#b8c2d6', marginBottom: '8px' }}>
+                      {task.project?.ProjectName || 'No project'}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                      <span style={{
+                        fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
+                        background: overdue ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.12)',
+                        color: overdue ? '#fecaca' : '#f59e0b',
+                      }}>
+                        {overdue ? 'Overdue' : (task.DueDate ? new Date(task.DueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date')}
+                      </span>
+                      <span style={{
+                        fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
+                        background: task.Priority === 'High' ? 'rgba(239,68,68,0.12)' : task.Priority === 'Low' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                        color: task.Priority === 'High' ? '#ef4444' : task.Priority === 'Low' ? '#10b981' : '#f59e0b',
+                      }}>{task.Priority || 'Medium'}</span>
+                      <span style={{
+                        fontSize: '10px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600,
+                        background: task.Status === 'Completed' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                        color: task.Status === 'Completed' ? '#10b981' : '#f59e0b',
+                      }}>{task.Status || 'Pending'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => setEditTask(task)} style={{
+                        flex: 1, padding: '8px',
+                        background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
+                        borderRadius: '8px', color: '#00d4ff', fontSize: '12px', cursor: 'pointer',
+                      }}>Edit</button>
+                      <button onClick={() => {
+                        if (confirm(`Remove "${task.TaskName}"?`)) deleteMutation.mutate(task.TaskID)
+                      }} style={{
+                        padding: '8px 12px',
+                        background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
+                        borderRadius: '8px', color: '#ef4444', fontSize: '12px', cursor: 'pointer',
+                      }}>Delete</button>
+                    </div>
+                  </div>
+                )})}
+              </div>
+            )}
           </div>
         </div>
-        )}
       </div>
 
       {(showModal || editTask) && (
