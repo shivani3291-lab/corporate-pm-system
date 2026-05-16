@@ -89,7 +89,11 @@ def _build_reason(features: dict[str, float | int], level: str) -> str:
 
 
 def predict_delay(features: dict[str, float | int]) -> dict[str, str | int]:
-    """Input keys: totalTasks, completedTasks, overdueTasks, daysUntilDeadline, teamSize."""
+    """Input keys: totalTasks, completedTasks, overdueTasks, daysUntilDeadline, teamSize.
+    
+    Special case: If totalTasks is 0, returns "On Track" with 0% risk.
+    A project with no tasks is a new project that's ready to start.
+    """
     required = (
         "totalTasks",
         "completedTasks",
@@ -107,6 +111,14 @@ def predict_delay(features: dict[str, float | int]) -> dict[str, str | int]:
     if total > 0:
         completed = min(completed, total)
         overdue = min(overdue, total)
+
+    # SPECIAL CASE: No tasks = new project, ready to start
+    if total == 0:
+        return {
+            "riskScore": 0,
+            "riskLevel": "On Track",
+            "reason": "New project — add tasks to begin tracking progress.",
+        }
 
     x = np.array(
         [

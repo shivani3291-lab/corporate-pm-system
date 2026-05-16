@@ -7,7 +7,7 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from models.classifier import classify_document
+from models.classifier import classify_document, add_training_example
 from models.delay_predictor import predict_delay
 from models.health_pipeline import analyze_project_health
 from models.search import semantic_search
@@ -225,4 +225,30 @@ def post_auto_prioritize(body: AutoPrioritizeRequest) -> AutoPrioritizeResponse:
             )
             for r in results
         ],
+    )
+
+
+# ── Feedback: learn from user corrections ─────────────────────
+
+class FeedbackRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=500)
+    category: str = Field(..., min_length=1, max_length=100)
+
+
+class FeedbackResponse(BaseModel):
+    success: bool
+    message: str
+
+
+@app.post("/classify-feedback", response_model=FeedbackResponse)
+def post_classify_feedback(body: FeedbackRequest) -> FeedbackResponse:
+    """Called when user selects a different category than AI suggested.
+    
+    Adds the title + correct category as a training example
+    so the model improves future predictions.
+    """
+    ok = add_training_example(body.title, body.category)
+    return FeedbackResponse(
+        success=ok,
+        message=f"Learned: '{body.title}' → '{body.category}'",
     )
