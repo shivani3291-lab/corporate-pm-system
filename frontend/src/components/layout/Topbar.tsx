@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useSidebar } from '../../context/SidebarContext'
 import { aiAPI } from '../../services/api'
+import toast from 'react-hot-toast'
 
 interface TopbarProps {
   title: string
