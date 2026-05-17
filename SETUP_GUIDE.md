@@ -322,7 +322,7 @@ cd ai-service
 # Windows
 python -m venv venv
 venv\Scripts\activate
-
+conda activate corporate-pm
 # macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
@@ -862,6 +862,52 @@ Access:
 
 ---
 
+## Azure CI/CD Setup
+
+### Generate Azure Credentials for GitHub Actions
+
+**1. Find your Subscription ID:**
+- Go to Azure Portal → search **Subscriptions** → click your subscription
+- Copy the **Subscription ID** from the Overview page
+
+**2. Run this command in terminal:**
+
+```bash
+az ad sp create-for-rbac --name "corporate-pm-deploy" --role contributor --scopes /subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/YOUR_RESOURCE_GROUP --sdk-auth
+```
+
+Replace `YOUR_SUBSCRIPTION_ID` and `YOUR_RESOURCE_GROUP` with your actual values.
+
+**3. The command outputs a JSON like this:**
+
+```json
+{
+  "clientId": "xxx",
+  "clientSecret": "xxx",
+  "subscriptionId": "xxx",
+  "tenantId": "xxx",
+  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+  "resourceManagerEndpointUrl": "https://management.azure.com/",
+  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+  "galleryEndpointUrl": "https://gallery.azure.com/",
+  "managementEndpointUrl": "https://management.core.windows.net/"
+}
+```
+
+**4. Add to GitHub Secrets:**
+- Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+- Click **New repository secret**
+- Name: `AZURE_CREDENTIALS`
+- Value: Paste the entire JSON
+- Click **Add secret**
+
+Also add:
+- Name: `DATABASE_URL`
+- Value: Your `DATABASE_URL` connection string
+
+---
+
 ## Next Steps
 
 1. **Create test accounts** in the application
@@ -872,5 +918,5 @@ Access:
 
 ---
 
-**Setup Version**: 1.0
-**Last Updated**: May 1, 2026
+**Setup Version**: 1.1
+**Last Updated**: May 6, 2026

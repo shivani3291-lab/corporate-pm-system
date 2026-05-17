@@ -191,6 +191,34 @@ router.post('/classify-document', authenticate, async (req: AuthRequest, res: Re
   }
 })
 
+// ── Classify Feedback (learn from user corrections) ──────────────
+router.post('/classify-feedback', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, category } = req.body as { title?: string; category?: string }
+    if (!title || !category) {
+      res.status(400).json({ error: 'title and category are required' })
+      return
+    }
+
+    const url = `${aiServiceBase()}/classify-feedback`
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title.trim(), category: category.trim() }),
+    })
+
+    if (!r.ok) {
+      res.status(502).json({ error: 'AI service error' })
+      return
+    }
+
+    const data = await r.json()
+    res.json(data)
+  } catch {
+    res.status(503).json({ error: 'AI service unavailable' })
+  }
+})
+
 router.post('/predict-delay', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { projectId } = req.body as { projectId?: number }

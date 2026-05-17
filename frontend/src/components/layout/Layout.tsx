@@ -14,7 +14,7 @@ export default function Layout({ children, title, subtitle }: LayoutProps) {
     <SidebarProvider>
     <div style={{
       display: 'flex',
-      height: '100vh',
+      height: '100dvh',
       overflow: 'hidden',
       background: 'var(--bg-primary)',
     }}>

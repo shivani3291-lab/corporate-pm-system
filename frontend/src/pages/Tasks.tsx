@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/layout/Layout'
-import { tasksAPI, projectsAPI } from '../services/api'
+import { tasksAPI, projectsAPI, employeesAPI, assignmentsAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 const STATUS_OPTS = ['Pending', 'In Progress', 'Completed', 'On Hold'] as const
@@ -203,6 +203,8 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState<any>(null)
   const [statusFilter, setStatusFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
+  const [projectFilter, setProjectFilter] = useState<number | 'All'>('All')
+  const [employeeFilter, setEmployeeFilter] = useState<number | 'All'>('All')
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -216,6 +218,16 @@ export default function Tasks() {
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsAPI.getAll().then(r => r.data),
+  })
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => employeesAPI.getAll().then(r => r.data),
+  })
+
+  const { data: assignments = [] } = useQuery({
+    queryKey: ['assignments'],
+    queryFn: () => assignmentsAPI.getAll().then(r => r.data),
   })
 
   const filteredProject = useMemo(() => {
@@ -266,9 +278,22 @@ export default function Tasks() {
     return (tasks as any[]).filter((t) => {
       const statusOk = statusFilter === 'All' || t.Status === statusFilter
       const priorityOk = priorityFilter === 'All' || t.Priority === priorityFilter
-      return statusOk && priorityOk
+      
+      // Project filter
+      const projectOk = projectFilter === 'All' || t.ProjectID === projectFilter
+      
+      // Employee filter - find tasks assigned to this employee
+      let employeeOk = true
+      if (employeeFilter !== 'All') {
+        const projectAssignments = (assignments as any[]).filter(
+          (a: any) => a.ProjectID === t.ProjectID && a.EmployeeID === employeeFilter
+        )
+        employeeOk = projectAssignments.length > 0
+      }
+      
+      return statusOk && priorityOk && projectOk && employeeOk
     })
-  }, [tasks, statusFilter, priorityFilter])
+  }, [tasks, statusFilter, priorityFilter, projectFilter, employeeFilter, assignments])
 
   const isOverdue = useCallback(
     (task: any) =>
@@ -383,6 +408,48 @@ export default function Tasks() {
           gap: '8px',
           marginBottom: '16px',
         }}>
+          {/* Project Filter */}
+          <select
+            value={projectFilter}
+            onChange={e => setProjectFilter(e.target.value === 'All' ? 'All' : parseInt(e.target.value))}
+            style={{
+              padding: '6px 10px',
+              background: '#0d1526',
+              border: '1px solid #1e2d45',
+              borderRadius: '8px',
+              color: '#f0f4ff',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="All">All Projects</option>
+            {(projects as any[]).map((p: any) => (
+              <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>
+            ))}
+          </select>
+
+          {/* Employee Filter */}
+          <select
+            value={employeeFilter}
+            onChange={e => setEmployeeFilter(e.target.value === 'All' ? 'All' : parseInt(e.target.value))}
+            style={{
+              padding: '6px 10px',
+              background: '#0d1526',
+              border: '1px solid #1e2d45',
+              borderRadius: '8px',
+              color: '#f0f4ff',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="All">All Employees</option>
+            {(employees as any[]).map((e: any) => (
+              <option key={e.EmployeeID} value={e.EmployeeID}>{e.FirstName} {e.LastName}</option>
+            ))}
+          </select>
+
+          <div style={{ width: '1px', height: '20px', background: '#1e2d45' }} />
+
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {['All', 'Pending', 'In Progress', 'Completed', 'On Hold'].map(s => (
               <button key={s} onClick={() => setStatusFilter(s)} style={{

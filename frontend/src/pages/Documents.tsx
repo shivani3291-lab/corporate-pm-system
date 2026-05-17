@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/layout/Layout'
 import { documentsAPI, projectsAPI, categoriesAPI, aiAPI } from '../services/api'
 import toast from 'react-hot-toast'
+import api from '../services/api'
 
 function FileIcon({ fileName }: { fileName: string }) {
   const ext = fileName?.split('.').pop()?.toLowerCase() || ''
@@ -31,29 +32,16 @@ function FileIcon({ fileName }: { fileName: string }) {
   )
 }
 
-function matchPredictedCategory(
-  predicted: string,
-  categories: { CategoryID: number; CategoryName: string }[],
-) {
-  const p = predicted.trim().toLowerCase()
-  const exact = categories.find((c) => c.CategoryName.toLowerCase() === p)
-  if (exact) return exact
-  return categories.find(
-    (c) =>
-      c.CategoryName.toLowerCase().includes(p) ||
-      p.includes(c.CategoryName.toLowerCase()),
-  )
-}
-
 function DocumentModal({
-  onClose, onSubmit, initial, loading, projects, categories
+  onClose, onSubmit, initial, loading, projects, categories, onCategoryCreated
 }: {
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: any, file: File | null) => void
   initial?: any
   loading: boolean
   projects: any[]
   categories: any[]
+  onCategoryCreated: () => void
 }) {
   const [form, setForm] = useState({
     projectId: initial?.ProjectID || '',
@@ -63,7 +51,37 @@ function DocumentModal({
     versionNumber: initial?.VersionNumber || 'v1',
     createdBy: initial?.CreatedBy || '',
   })
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [suggestLoading, setSuggestLoading] = useState(false)
+  const [showNewCategory, setShowNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
+  const [aiSuggestedCategoryName, setAiSuggestedCategoryName] = useState<string | null>(null)
+
+  const handleCreateCategory = async (name: string) => {
+    if (!name.trim()) {
+      toast.error('Enter a category name')
+      return
+    }
+    setCreatingCategory(true)
+    try {
+      const res = await api.post('/categories', {
+        categoryName: name.trim(),
+        description: '',
+      })
+      toast.success(`Category "${name.trim()}" created`)
+      onCategoryCreated()
+      setForm(prev => ({ ...prev, categoryId: String(res.data.CategoryID) }))
+      setShowNewCategory(false)
+      setNewCategoryName('')
+      setAiSuggestion(null)
+    } catch {
+      toast.error('Failed to create category')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
 
   return (
     <div style={{
@@ -93,91 +111,302 @@ function DocumentModal({
           }}>×</button>
         </div>
 
-        {[
-          { label: 'Project', key: 'projectId', type: 'select', options: projects.map((p: any) => ({ value: p.ProjectID, label: p.ProjectName })) },
-          { label: 'Category', key: 'categoryId', type: 'select', options: categories.map((c: any) => ({ value: c.CategoryID, label: c.CategoryName })) },
-        ].map(({ label, key, options }) => (
-          <div key={key} style={{ marginBottom: '16px' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: '6px', gap: '8px',
-            }}>
-              <label style={{
-                display: 'block', fontSize: '11px', fontWeight: 600,
-                color: '#b8c2d6',
-                textTransform: 'uppercase', letterSpacing: '0.5px',
-              }}>{label}</label>
-              {key === 'categoryId' && (
-                <button
-                  type="button"
-                  disabled={suggestLoading || !String(form.documentTitle || '').trim()}
-                  onClick={async () => {
-                    const title = String(form.documentTitle || '').trim()
-                    if (!title) {
-                      toast.error('Enter a document title first')
-                      return
-                    }
-                    setSuggestLoading(true)
-                    try {
-                      const { data } = await aiAPI.classifyDocument(title)
-                      const match = matchPredictedCategory(data.category, categories)
-                      if (match) {
-                        setForm((prev) => ({
-                          ...prev,
-                          categoryId: String(match.CategoryID),
-                        }))
-                        toast.success(
-                          `Category: ${match.CategoryName} (${Math.round(data.confidence * 100)}% confidence)`,
-                        )
-                      } else {
-                        toast.error(
-                          `Model suggests "${data.category}" — add a matching category or pick manually.`,
-                        )
-                      }
-                    } catch {
-                      toast.error('AI suggestion failed (is the AI service running?)')
-                    } finally {
-                      setSuggestLoading(false)
-                    }
-                  }}
-                  style={{
-                    padding: '4px 10px', fontSize: '11px', fontWeight: 600,
-                    fontFamily: 'Syne, sans-serif',
-                    background: 'rgba(124, 58, 237, 0.15)',
-                    border: '1px solid rgba(124, 58, 237, 0.35)',
-                    borderRadius: '6px', color: '#c4b5fd',
-                    cursor: suggestLoading || !String(form.documentTitle || '').trim()
-                      ? 'not-allowed'
-                      : 'pointer',
-                    opacity: suggestLoading || !String(form.documentTitle || '').trim() ? 0.5 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {suggestLoading ? '…' : 'AI suggest'}
-                </button>
-              )}
-            </div>
-            <select
-              value={form[key as keyof typeof form]}
-              onChange={e => setForm({ ...form, [key]: e.target.value })}
-              style={{
-                width: '100%', padding: '10px 12px',
-                background: '#0d1526', border: '1px solid #1e2d45',
-                borderRadius: '8px', outline: 'none',
-                fontSize: '13px', color: '#f0f4ff',
-              }}
-            >
-              <option value="">Select {label}</option>
-              {options.map((o: any) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-        ))}
+        {/* Project Select */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{
+            display: 'block', fontSize: '11px', fontWeight: 600,
+            color: '#b8c2d6', marginBottom: '6px',
+            textTransform: 'uppercase', letterSpacing: '0.5px',
+          }}>Project</label>
+          <select
+            value={form.projectId}
+            onChange={e => setForm({ ...form, projectId: e.target.value })}
+            style={{
+              width: '100%', padding: '10px 12px',
+              background: '#0d1526', border: '1px solid #1e2d45',
+              borderRadius: '8px', outline: 'none',
+              fontSize: '13px', color: '#f0f4ff',
+            }}
+          >
+            <option value="">Select Project</option>
+            {projects.map((p: any) => (
+              <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>
+            ))}
+          </select>
+        </div>
 
+        {/* Category Select */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: '6px', gap: '8px',
+          }}>
+            <label style={{
+              display: 'block', fontSize: '11px', fontWeight: 600,
+              color: '#b8c2d6',
+              textTransform: 'uppercase', letterSpacing: '0.5px',
+            }}>Category</label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                type="button"
+                disabled={suggestLoading || !String(form.documentTitle || '').trim()}
+                onClick={async () => {
+                  const title = String(form.documentTitle || '').trim()
+                  if (!title) {
+                    toast.error('Enter a document title first')
+                    return
+                  }
+                  setSuggestLoading(true)
+                  try {
+                    const { data } = await aiAPI.classifyDocument(title)
+                    const predicted = data.category.trim()
+                    const confidence = Math.round(data.confidence * 100)
+
+                    // Store AI suggestion for feedback tracking
+                    setAiSuggestedCategoryName(predicted)
+
+                    // Check if category exists
+                    const existing = categories.find(
+                      (c: any) => c.CategoryName.toLowerCase() === predicted.toLowerCase()
+                    )
+
+                    if (existing) {
+                      setForm(prev => ({ ...prev, categoryId: String(existing.CategoryID) }))
+                      toast.success(`Category: ${existing.CategoryName} (${confidence}% confidence)`)
+                      setAiSuggestion(null)
+                    } else {
+                      // Category doesn't exist — offer to create it
+                      setAiSuggestion(predicted)
+                      setNewCategoryName(predicted)
+                      setShowNewCategory(true)
+                      toast(`AI suggests "${predicted}" (${confidence}%) — click Create to add it`, { icon: '✨' })
+                    }
+                  } catch {
+                    toast.error('AI service unavailable')
+                  } finally {
+                    setSuggestLoading(false)
+                  }
+                }}
+                style={{
+                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                  fontFamily: 'Syne, sans-serif',
+                  background: 'rgba(124, 58, 237, 0.15)',
+                  border: '1px solid rgba(124, 58, 237, 0.35)',
+                  borderRadius: '6px', color: '#c4b5fd',
+                  cursor: suggestLoading || !String(form.documentTitle || '').trim()
+                    ? 'not-allowed'
+                    : 'pointer',
+                  opacity: suggestLoading || !String(form.documentTitle || '').trim() ? 0.5 : 1,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {suggestLoading ? '…' : '✨ AI Suggest'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewCategory(true)
+                  setNewCategoryName('')
+                  setAiSuggestion(null)
+                }}
+                style={{
+                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                  fontFamily: 'Syne, sans-serif',
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.25)',
+                  borderRadius: '6px', color: '#00d4ff',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                + Custom
+              </button>
+            </div>
+          </div>
+
+          {/* Category Dropdown */}
+          <select
+            value={form.categoryId}
+            onChange={e => setForm({ ...form, categoryId: e.target.value })}
+            style={{
+              width: '100%', padding: '10px 12px',
+              background: '#0d1526', border: '1px solid #1e2d45',
+              borderRadius: '8px', outline: 'none',
+              fontSize: '13px', color: '#f0f4ff',
+            }}
+          >
+            <option value="">Select Category</option>
+            {categories.map((c: any) => (
+              <option key={c.CategoryID} value={c.CategoryID}>{c.CategoryName}</option>
+            ))}
+          </select>
+
+          {/* AI Suggestion Banner */}
+          {aiSuggestion && !form.categoryId && (
+            <div style={{
+              marginTop: '8px', padding: '10px 12px',
+              background: 'rgba(124, 58, 237, 0.1)',
+              border: '1px solid rgba(124, 58, 237, 0.25)',
+              borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span style={{ fontSize: '12px', color: '#c4b5fd' }}>
+                ✨ AI suggests: <strong>{aiSuggestion}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCreateCategory(aiSuggestion)}
+                disabled={creatingCategory}
+                style={{
+                  padding: '4px 12px', fontSize: '11px', fontWeight: 600,
+                  background: '#7c3aed', border: 'none',
+                  borderRadius: '6px', color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                {creatingCategory ? 'Creating...' : 'Create & Select'}
+              </button>
+            </div>
+          )}
+
+          {/* New Category Input */}
+          {showNewCategory && !aiSuggestion && (
+            <div style={{
+              marginTop: '8px', display: 'flex', gap: '8px',
+            }}>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                placeholder="New category name"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleCreateCategory(newCategoryName)
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '8px 12px',
+                  background: '#0d1526', border: '1px solid #1e2d45',
+                  borderRadius: '8px', outline: 'none',
+                  fontSize: '13px', color: '#f0f4ff',
+                }}
+                onFocus={e => e.target.style.borderColor = '#00d4ff'}
+                onBlur={e => e.target.style.borderColor = '#1e2d45'}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => handleCreateCategory(newCategoryName)}
+                disabled={creatingCategory || !newCategoryName.trim()}
+                style={{
+                  padding: '8px 14px', fontSize: '12px', fontWeight: 600,
+                  background: newCategoryName.trim() ? '#00d4ff' : '#1e2d45',
+                  border: 'none', borderRadius: '8px',
+                  color: newCategoryName.trim() ? '#0a0f1e' : '#6b7280',
+                  cursor: newCategoryName.trim() ? 'pointer' : 'not-allowed',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {creatingCategory ? '...' : 'Create'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowNewCategory(false); setNewCategoryName('') }}
+                style={{
+                  padding: '8px 10px', fontSize: '12px',
+                  background: 'transparent', border: '1px solid #1e2d45',
+                  borderRadius: '8px', color: '#b8c2d6',
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* File Upload */}
+        {!initial && (
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block', fontSize: '11px', fontWeight: 600,
+              color: '#b8c2d6', marginBottom: '6px',
+              textTransform: 'uppercase', letterSpacing: '0.5px',
+            }}>Upload File</label>
+            <label style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '20px',
+              background: '#0d1526', border: '2px dashed #1e2d45',
+              borderRadius: '10px', cursor: 'pointer',
+              transition: 'border-color 0.2s',
+            }}
+              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#00d4ff' }}
+              onDragLeave={e => { e.currentTarget.style.borderColor = '#1e2d45' }}
+              onDrop={e => {
+                e.preventDefault()
+                e.currentTarget.style.borderColor = '#1e2d45'
+                const file = e.dataTransfer.files[0]
+                if (file) {
+                  setSelectedFile(file)
+                  if (!form.documentTitle) setForm(prev => ({ ...prev, documentTitle: file.name.replace(/\.[^.]+$/, '') }))
+                  if (!form.fileName) setForm(prev => ({ ...prev, fileName: file.name }))
+                }
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#2a3f5f'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = '#1e2d45'}
+            >
+              {selectedFile ? (
+                <>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>📎</div>
+                  <div style={{ fontSize: '13px', color: '#f0f4ff', fontWeight: 500 }}>{selectedFile.name}</div>
+                  <div style={{ fontSize: '11px', color: '#b8c2d6', marginTop: '4px' }}>
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </div>
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedFile(null)
+                    }}
+                    style={{
+                      marginTop: '8px', fontSize: '11px',
+                      color: '#ef4444', background: 'none',
+                      border: 'none', cursor: 'pointer',
+                    }}
+                  >Remove file</button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '28px', marginBottom: '8px' }}>📂</div>
+                  <div style={{ fontSize: '13px', color: '#b8c2d6' }}>
+                    Click to browse or drag & drop
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                    PDF, DOCX, XLSX, PNG, JPG — max 25 MB
+                  </div>
+                </>
+              )}
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,.csv"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0] || null
+                  setSelectedFile(file)
+                  if (file) {
+                    if (!form.documentTitle) setForm(prev => ({ ...prev, documentTitle: file.name.replace(/\.[^.]+$/, '') }))
+                    if (!form.fileName) setForm(prev => ({ ...prev, fileName: file.name }))
+                  }
+                }}
+              />
+            </label>
+          </div>
+        )}
+
+        {/* Text Fields */}
         {[
           { label: 'Document Title', key: 'documentTitle' },
-          { label: 'File Name', key: 'fileName', placeholder: 'e.g. report_v1.pdf' },
           { label: 'Version Number', key: 'versionNumber', placeholder: 'e.g. v1' },
           { label: 'Created By', key: 'createdBy' },
         ].map(({ label, key, placeholder }) => (
@@ -204,6 +433,7 @@ function DocumentModal({
           </div>
         ))}
 
+        {/* Actions */}
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
           <button onClick={onClose} style={{
             padding: '10px 20px', background: 'transparent',
@@ -211,7 +441,28 @@ function DocumentModal({
             color: '#b8c2d6', fontSize: '13px', cursor: 'pointer',
           }}>Cancel</button>
           <button
-            onClick={() => onSubmit(form)}
+            onClick={async () => {
+              if (!form.projectId) {
+                toast.error('Please select a project')
+                return
+              }
+              if (!form.documentTitle.trim()) {
+                toast.error('Please enter a document title')
+                return
+              }
+
+              // If user overrode AI suggestion, send feedback to train the model
+              if (aiSuggestedCategoryName && form.categoryId) {
+                const selectedCat = categories.find(
+                  (c: any) => String(c.CategoryID) === String(form.categoryId)
+                )
+                if (selectedCat && selectedCat.CategoryName.toLowerCase() !== aiSuggestedCategoryName.toLowerCase()) {
+                  aiAPI.classifyFeedback(form.documentTitle, selectedCat.CategoryName).catch(() => {})
+                }
+              }
+
+              onSubmit(form, selectedFile)
+            }}
             disabled={loading}
             style={{
               padding: '10px 20px',
@@ -222,7 +473,7 @@ function DocumentModal({
               cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'Syne, sans-serif',
             }}
-          >{loading ? 'Saving...' : 'Save Document'}</button>
+          >{loading ? 'Uploading...' : 'Save Document'}</button>
         </div>
       </div>
     </div>
@@ -251,7 +502,7 @@ export default function Documents() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => documentsAPI.create(data),
+    mutationFn: (formData: FormData) => documentsAPI.create(formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] })
       toast.success('Document added successfully')
@@ -286,17 +537,28 @@ export default function Documents() {
     ? documents
     : documents.filter((d: any) => d.category?.CategoryName === filter)
 
-  const handleSubmit = (data: any) => {
-    const formatted = {
-      ...data,
-      projectId: parseInt(data.projectId),
-      categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
-    }
+  const handleSubmit = (data: any, file: File | null) => {
     if (editDoc) {
+      const formatted = {
+        documentTitle: data.documentTitle,
+        categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
+        versionNumber: data.versionNumber,
+      }
       updateMutation.mutate({ id: editDoc.DocumentID, data: formatted })
     } else {
-      createMutation.mutate(formatted)
+      const fd = new FormData()
+      fd.append('projectId', data.projectId)
+      if (data.categoryId) fd.append('categoryId', data.categoryId)
+      fd.append('documentTitle', data.documentTitle)
+      fd.append('versionNumber', data.versionNumber || 'v1')
+      fd.append('createdBy', data.createdBy || 'System')
+      if (file) fd.append('file', file)
+      createMutation.mutate(fd)
     }
+  }
+
+  const refreshCategories = () => {
+    queryClient.invalidateQueries({ queryKey: ['categories'] })
   }
 
   return (
@@ -407,7 +669,7 @@ export default function Documents() {
                 }}>
                   {[
                     { label: 'Project', value: doc.project?.ProjectName },
-                    { label: 'Category', value: doc.category?.CategoryName },
+                    { label: 'Category', value: doc.category?.CategoryName || '—' },
                     { label: 'Created by', value: doc.CreatedBy },
                     {
                       label: 'Updated',
@@ -417,40 +679,58 @@ export default function Documents() {
                         })
                         : null
                     },
-                  ].filter(item => item.value).map(item => (
-                    <div key={item.label} style={{
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{
                       display: 'flex', justifyContent: 'space-between',
-                      fontSize: '11px',
+                      fontSize: '12px',
                     }}>
-                      <span style={{ color: '#4a5568' }}>{item.label}</span>
-                      <span style={{ color: '#b8c2d6' }}>{item.value}</span>
+                      <span style={{ color: '#6b7280' }}>{label}</span>
+                      <span style={{ color: '#b8c2d6' }}>{value || '—'}</span>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{
+                  display: 'flex', gap: '6px',
+                  borderTop: '1px solid #1e2d45',
+                  paddingTop: '12px',
+                }}>
+                  {doc.fileLocation?.FilePath && (
+                    <a
+                      href={doc.fileLocation.FilePath}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        flex: 1, textAlign: 'center',
+                        padding: '7px 10px', borderRadius: '8px',
+                        fontSize: '12px', fontWeight: 500,
+                        background: 'rgba(16,185,129,0.1)',
+                        color: '#10b981', textDecoration: 'none',
+                        border: '1px solid rgba(16,185,129,0.2)',
+                        cursor: 'pointer',
+                      }}
+                    >↓ Download</a>
+                  )}
                   <button
                     onClick={() => setEditDoc(doc)}
                     style={{
-                      flex: 1, padding: '7px',
-                      background: 'rgba(0,212,255,0.06)',
-                      border: '1px solid rgba(0,212,255,0.15)',
-                      borderRadius: '7px', color: '#00d4ff',
-                      fontSize: '12px', cursor: 'pointer',
+                      flex: 1, padding: '7px 10px',
+                      borderRadius: '8px', fontSize: '12px',
+                      fontWeight: 500, background: 'rgba(0,212,255,0.1)',
+                      color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)',
+                      cursor: 'pointer',
                     }}
                   >Edit</button>
                   <button
                     onClick={() => {
-                      if (confirm(`Delete "${doc.DocumentTitle}"?`)) {
-                        deleteMutation.mutate(doc.DocumentID)
-                      }
+                      if (confirm('Delete this document?')) deleteMutation.mutate(doc.DocumentID)
                     }}
                     style={{
-                      flex: 1, padding: '7px',
-                      background: 'rgba(239,68,68,0.06)',
-                      border: '1px solid rgba(239,68,68,0.15)',
-                      borderRadius: '7px', color: '#ef4444',
-                      fontSize: '12px', cursor: 'pointer',
+                      flex: 1, padding: '7px 10px',
+                      borderRadius: '8px', fontSize: '12px',
+                      fontWeight: 500, background: 'rgba(239,68,68,0.1)',
+                      color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)',
+                      cursor: 'pointer',
                     }}
                   >Delete</button>
                 </div>
@@ -468,6 +748,7 @@ export default function Documents() {
           loading={createMutation.isPending || updateMutation.isPending}
           projects={projects}
           categories={categories}
+          onCategoryCreated={refreshCategories}
         />
       )}
     </Layout>

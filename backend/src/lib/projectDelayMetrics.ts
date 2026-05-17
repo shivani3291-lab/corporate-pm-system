@@ -50,6 +50,15 @@ export function heuristicDelayRisk(m: DelayMetrics): {
   riskLevel: string
   reason: string
 } {
+  // SPECIAL CASE: No tasks = new project, ready to start
+  if (m.totalTasks === 0) {
+    return {
+      riskScore: 0,
+      riskLevel: 'On Track',
+      reason: 'New project — add tasks to begin tracking progress.',
+    }
+  }
+
   const total = Math.max(m.totalTasks, 1)
   const overdueR = m.overdueTasks / total
   const compR = m.completedTasks / total

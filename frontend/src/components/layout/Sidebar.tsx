@@ -13,7 +13,6 @@ const navItems = [
   { path: '/alerts', icon: '✦', label: 'Alerts', section: 'Main' },
   { path: '/documents', icon: '▦', label: 'Documents', section: 'Resources' },
   { path: '/employees', icon: '◉', label: 'Employees', section: 'Resources' },
-  { path: '/categories', icon: '◫', label: 'Categories', section: 'Resources' },
 ]
 
 const sections = ['Main', 'Resources']
@@ -53,7 +52,7 @@ export default function Sidebar() {
         top: 0,
         zIndex: 220,
         width: 'min(288px, 88vw)',
-        height: '100vh',
+        height: '100dvh',
         background: 'linear-gradient(180deg, #0d1526 0%, #0a0f1e 100%)',
         borderRight: '1px solid #1e2d45',
         display: 'flex',

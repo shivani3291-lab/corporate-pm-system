@@ -60,9 +60,14 @@ export const tasksAPI = {
 
 export const documentsAPI = {
   getAll: (params?: any) => api.get('/documents', { params }),
-  create: (data: any) => api.post('/documents', data),
+  create: (formData: FormData) =>
+    api.post('/documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   update: (id: number, data: any) => api.put(`/documents/${id}`, data),
   delete: (id: number) => api.delete(`/documents/${id}`),
+  downloadUrl: (id: number) =>
+    `${import.meta.env.VITE_API_URL || '/api'}/documents/${id}/download`,
 }
 
 export const employeesAPI = {
@@ -116,6 +121,11 @@ export const aiAPI = {
   classifyDocument: (title: string) =>
     api.post<{ category: string; confidence: number }>('/ai/classify-document', {
       title,
+    }),
+  classifyFeedback: (title: string, category: string) =>
+    api.post<{ success: boolean; message: string }>('/ai/classify-feedback', {
+      title,
+      category,
     }),
   semanticSearch: (query: string, limit = 8) =>
     api.post<{

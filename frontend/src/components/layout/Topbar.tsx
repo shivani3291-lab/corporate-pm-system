@@ -85,8 +85,13 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
     setSearch('')
     setDebounced('')
     setResults([])
-    if (hit.kind === 'task') navigate('/tasks')
-    else navigate('/documents')
+    if (hit.kind === 'task') {
+      navigate('/tasks')
+      toast.success(`Opening task: ${hit.title}`)
+    } else {
+      navigate('/documents')
+      toast.success(`Opening document: ${hit.title}`)
+    }
   }
 
   const showPanel = open && debounced.trim().length >= 2

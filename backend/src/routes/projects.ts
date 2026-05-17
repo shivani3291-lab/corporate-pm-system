@@ -80,11 +80,35 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    await prisma.project.delete({
-      where: { ProjectID: parseInt(req.params.id as string) }
+    const projectId = parseInt(req.params.id as string)
+    
+    // Delete related records first (cascade delete)
+    await prisma.$transaction(async (tx) => {
+      // Delete project alerts
+      await tx.projectAlert.deleteMany({ where: { ProjectID: projectId } })
+      
+      // Delete project assignments
+      await tx.projectAssignment.deleteMany({ where: { ProjectID: projectId } })
+      
+      // Delete tasks
+      await tx.task.deleteMany({ where: { ProjectID: projectId } })
+      
+      // Delete documents (and their file locations)
+      const docs = await tx.document.findMany({ where: { ProjectID: projectId } })
+      for (const doc of docs) {
+        if (doc.FileLocationID) {
+          await tx.fileLocation.delete({ where: { FileLocationID: doc.FileLocationID } }).catch(() => {})
+        }
+      }
+      await tx.document.deleteMany({ where: { ProjectID: projectId } })
+      
+      // Finally delete the project
+      await tx.project.delete({ where: { ProjectID: projectId } })
     })
+    
     res.json({ message: 'Project deleted successfully' })
   } catch (error) {
+    console.error('Delete project error:', error)
     res.status(500).json({ error: 'Failed to delete project' })
   }
 })

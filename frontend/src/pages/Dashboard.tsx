@@ -136,7 +136,7 @@ export default function Dashboard() {
           <Stat label="Projects" value={projects?.length || 0} color="#00d4ff" onClick={() => navigate('/projects')} />
           <Stat label="Active Tasks" value={pendingCount} color="#7c3aed" onClick={() => navigate('/tasks')} />
           <Stat label="Completed" value={completedCount} color="#10b981" onClick={() => navigate('/tasks')} />
-          <Stat label="Team" value={employees?.length || 0} color="#f59e0b" onClick={() => navigate('/employees')} />
+          <Stat label="Employees" value={employees?.length || 0} color="#f59e0b" onClick={() => navigate('/employees')} />
         </div>
 
         {/* Chart + Status Row */}
@@ -304,19 +304,52 @@ export default function Dashboard() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ padding: '12px', borderRadius: '8px', background: overdueTasks?.length > 0 ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)', border: `1px solid ${overdueTasks?.length > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}` }}>
+              <div 
+                onClick={() => navigate('/tasks?status=overdue')}
+                style={{ 
+                  padding: '12px', borderRadius: '8px', 
+                  background: overdueTasks?.length > 0 ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)', 
+                  border: `1px solid ${overdueTasks?.length > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}`,
+                  cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+              >
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Overdue Tasks</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: overdueTasks?.length > 0 ? '#ef4444' : '#10b981' }}>
                   {overdueTasks?.length || 0}
                 </div>
               </div>
-              <div style={{ padding: '12px', borderRadius: '8px', background: criticalAlerts > 0 ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)', border: `1px solid ${criticalAlerts > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)'}` }}>
+              <div 
+                onClick={() => navigate('/alerts')}
+                style={{ 
+                  padding: '12px', borderRadius: '8px', 
+                  background: criticalAlerts > 0 ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)', 
+                  border: `1px solid ${criticalAlerts > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)'}`,
+                  cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+              >
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Critical Alerts</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: criticalAlerts > 0 ? '#f59e0b' : '#10b981' }}>
                   {criticalAlerts}
                 </div>
               </div>
-              <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.1)' }}>
+              <div 
+                onClick={() => navigate('/documents')}
+                style={{ 
+                  padding: '12px', borderRadius: '8px', 
+                  background: 'rgba(0,212,255,0.04)', 
+                  border: '1px solid rgba(0,212,255,0.1)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+              >
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Documents</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: '#00d4ff' }}>
                   {documents?.length || 0}
