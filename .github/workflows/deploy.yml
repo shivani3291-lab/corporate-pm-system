@@ -165,5 +165,5 @@ jobs:
       - name: Deploy AI service to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: echelon-ai
+          app-name: echelon-ai-models
           package: ai-service
