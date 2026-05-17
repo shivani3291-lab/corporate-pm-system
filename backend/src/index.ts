@@ -24,6 +24,7 @@ app.use(cors({
     'http://localhost:5173',
     'https://corporate-pm-frontend-bgeyefcjcqgpb9hf.centralindia-01.azurewebsites.net',
     'https://echelon-frontend-bjaredf7f0c5gge3.eastus-01.azurewebsites.net',
+    'https://echelon-frontend-brgeavhtd7h4gqc8.eastus-01.azurewebsites.net',
   ],
   credentials: true
 }))
