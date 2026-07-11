@@ -1,10 +1,9 @@
 import type { CSSProperties } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useSidebar } from '../../context/SidebarContext'
 import { useQuery } from '@tanstack/react-query'
 import { alertsAPI } from '../../services/api'
-import toast from 'react-hot-toast'
 
 const navItems = [
   { path: '/dashboard', icon: '⬡', label: 'Dashboard', section: 'Main' },
@@ -18,8 +17,7 @@ const navItems = [
 const sections = ['Main', 'Resources']
 
 export default function Sidebar() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const { collapsed, toggle, isMobile, mobileNavOpen, closeMobileNav } = useSidebar()
 
   const { data: alerts = [] } = useQuery({
@@ -29,13 +27,6 @@ export default function Sidebar() {
   })
 
   const criticalCount = alerts.filter((a: any) => a.Severity === 'Critical').length
-
-  const handleLogout = () => {
-    closeMobileNav()
-    logout()
-    toast.success('Signed out successfully')
-    navigate('/login')
-  }
 
   const initials = user
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
@@ -281,21 +272,6 @@ export default function Sidebar() {
                 {user?.role}
               </div>
             </div>
-          )}
-          {!narrow && (
-            <button
-              onClick={handleLogout}
-              title="Sign out"
-              style={{
-                background: 'none', border: 'none',
-                color: '#b8c2d6', fontSize: '16px',
-                cursor: 'pointer', padding: '2px',
-                flexShrink: 0,
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#b8c2d6')}
-            >⏻</button>
           )}
         </div>
       </div>

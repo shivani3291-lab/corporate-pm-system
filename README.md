@@ -4,12 +4,22 @@
 
 A full-stack enterprise project management platform designed to centralize operations, streamline workflows, and enable proactive, insight-driven execution across projects, tasks, documents, and teams.
 
+> **🎭 Public demo mode:** Login is disabled in this build so the app is directly browsable — every request runs as a demo Admin user (see `backend/src/middleware/auth.ts`). The system is designed around full JWT authentication and role-based access control (Admin/Manager/Staff), documented below and in [ARCHITECTURE.md](ARCHITECTURE.md); it's just not gated in the public demo.
+
+---
+
+## Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — system design, data flow, security model
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) — full API reference with request/response examples
+- [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) — code standards, git workflow, testing
+
 ---
 
 ## Key Capabilities
 
 ### Core Features
-- JWT Authentication & Role-Based Access (Admin, Manager, Staff)
+- JWT Authentication & Role-Based Access (Admin, Manager, Staff) — disabled by default in this public demo build, see note above
 - Full CRUD for Projects, Tasks, Documents, Employees
 - Real-time Dashboard with KPI analytics and clickable alerts
 - File upload/download with Azure Blob Storage integration
@@ -279,11 +289,24 @@ cd ai-service && python -m uvicorn main:app --reload --port 8000
 
 ## Roles & Permissions
 
+By design (bypassed for the public demo — see note above):
+
 | Role | Projects | Tasks | Documents | Employees | Alerts |
 |------|----------|-------|-----------|-----------|--------|
 | Admin | Full CRUD | Full CRUD | Full CRUD | Full CRUD | Full CRUD |
 | Manager | Full CRUD | Full CRUD | Full CRUD | View | View |
 | Staff | View assigned | Update status | View | View | View |
+
+---
+
+## Troubleshooting
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| DB Connection | 503 Service Unavailable | Check `DATABASE_URL`, verify SQL Server is running |
+| AI Service Timeout | 500 Server Error | Check AI service is running on :8000, verify `AI_SERVICE_URL` |
+| CORS Error | Cross-Origin blocked | Add the frontend origin to the CORS config in `backend/src/index.ts` |
+| Port in Use | `EADDRINUSE` | Kill the existing process on port 5000 / 5173 / 8000 |
 
 ---
 

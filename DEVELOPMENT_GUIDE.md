@@ -50,7 +50,7 @@
 
 ### Development Environment Setup
 
-**Quick Start** (assumes completed SETUP_GUIDE.md):
+**Quick Start** (see [README.md](README.md#local-development-setup) for prerequisites and environment variables):
 
 ```bash
 # Clone repo
@@ -67,7 +67,10 @@ cd backend && pnpm install && pnpm dev
 cd frontend && pnpm install && pnpm dev
 
 # AI Service (new terminal)
-cd ai-service && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python -m uvicorn main:app --reload
+cd ai-service && python -m venv venv
+source venv/bin/activate          # macOS/Linux
+# venv\Scripts\activate           # Windows
+pip install -r requirements.txt && python -m uvicorn main:app --reload
 ```
 
 ---

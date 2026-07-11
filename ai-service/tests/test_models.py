@@ -9,28 +9,28 @@ import pytest
 # ---------------------------------------------------------------------------
 
 class TestClassifier:
-    def test_classify_technical(self):
+    def test_classify_design(self):
         from models.classifier import classify_document
         cat, conf = classify_document("System architecture design document")
-        assert cat == "Technical"
+        assert cat == "Design"
         assert 0.0 < conf <= 1.0
 
-    def test_classify_finance(self):
+    def test_classify_business(self):
         from models.classifier import classify_document
-        cat, conf = classify_document("Quarterly budget forecast spreadsheet")
-        assert cat == "Finance"
+        cat, conf = classify_document("Business case and ROI analysis")
+        assert cat == "Business"
         assert conf > 0.3
 
-    def test_classify_report(self):
+    def test_classify_testing(self):
         from models.classifier import classify_document
-        cat, conf = classify_document("Executive summary monthly status report")
-        assert cat == "Report"
+        cat, conf = classify_document("Regression test suite execution report")
+        assert cat == "Testing"
         assert conf > 0.3
 
-    def test_classify_hr(self):
+    def test_classify_documentation(self):
         from models.classifier import classify_document
-        cat, conf = classify_document("Employee onboarding checklist")
-        assert cat == "HR"
+        cat, conf = classify_document("Admin user guide and operations manual")
+        assert cat == "Documentation"
         assert conf > 0.3
 
     def test_classify_empty_title_raises(self):

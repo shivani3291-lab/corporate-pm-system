@@ -49,10 +49,10 @@ function DelayRiskBadge({
         color: '#b8c2d6',
         marginTop: '4px',
         lineHeight: 1.35,
-        wordBreak: 'break-word',   // ← add
-        whiteSpace: 'normal',      // ← add
-        textAlign: 'right',        // ← add
-        maxWidth: '160px',         // ← add
+        wordBreak: 'break-word',
+        whiteSpace: 'normal',
+        textAlign: 'right',
+        maxWidth: '160px',
       }}
       >
         {explain}

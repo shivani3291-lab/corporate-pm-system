@@ -1,7 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './context/AuthContext'
-import Login from './pages/Login'
-import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
 import Tasks from './pages/Tasks'
@@ -9,47 +6,20 @@ import Documents from './pages/Documents'
 import Employees from './pages/Employees'
 import Categories from './pages/Categories'
 import Alerts from './pages/Alerts'
-import Layout from './components/layout/Layout'
-import type { ReactNode } from 'react'
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
-}
-
-function GuestOnly({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>
-}
-
+// Login is disabled for this public demo build — every route is open.
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
-      <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/dashboard" element={
-        <ProtectedRoute><Dashboard /></ProtectedRoute>
-      } />
-      <Route path="/projects" element={
-        <ProtectedRoute><Projects /></ProtectedRoute>
-      } />
-      <Route path="/tasks" element={
-        <ProtectedRoute><Tasks /></ProtectedRoute>
-      } />
-      <Route path="/documents" element={
-        <ProtectedRoute><Documents /></ProtectedRoute>
-      } />
-      <Route path="/employees" element={
-        <ProtectedRoute><Employees /></ProtectedRoute>
-      } />
-
-      <Route path="/categories" element={
-        <ProtectedRoute><Categories /></ProtectedRoute>
-      } />
-      <Route path="/alerts" element={
-        <ProtectedRoute><Alerts /></ProtectedRoute>
-      } />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/tasks" element={<Tasks />} />
+      <Route path="/documents" element={<Documents />} />
+      <Route path="/employees" element={<Employees />} />
+      <Route path="/categories" element={<Categories />} />
+      <Route path="/alerts" element={<Alerts />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
 }

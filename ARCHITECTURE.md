@@ -2,6 +2,8 @@
 
 **Corporate Project Management System**
 
+> **Public demo mode:** the Security Architecture section below describes the full JWT/RBAC design. In the public demo build, `backend/src/middleware/auth.ts` treats any request without a valid token as an authenticated demo Admin, so the app is directly browsable without logging in — see [README.md](README.md#documentation).
+
 ---
 
 ## Table of Contents

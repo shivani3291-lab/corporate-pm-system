@@ -1,49 +1,31 @@
 /**
  * Demo Data Seed Script
  * Run: node seed-demo.js
- * 
+ *
  * Adds employees, projects, tasks, and assignments for demo showcase.
+ * The backend runs in open demo mode (see backend/src/middleware/auth.ts),
+ * so no login step or credentials are required.
  */
 
 const BASE_URL = 'http://localhost:5000/api'
-
-// Your admin token - login first and paste token here
-let ADMIN_TOKEN = ''
 
 async function api(method, path, body = null) {
   const opts = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ADMIN_TOKEN}`,
     },
   }
   if (body) opts.body = JSON.stringify(body)
-  
+
   const res = await fetch(`${BASE_URL}${path}`, opts)
   const data = await res.json()
-  
+
   if (!res.ok) {
     console.error(`❌ ${method} ${path}: ${data.error || JSON.stringify(data)}`)
     return null
   }
   return data
-}
-
-async function login() {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'shivani@test.com', password: 'test123' }),
-  })
-  const data = await res.json()
-  if (data.token) {
-    ADMIN_TOKEN = data.token
-    console.log('✅ Logged in as admin')
-    return true
-  }
-  console.error('❌ Login failed:', data)
-  return false
 }
 
 async function registerEmployee(firstName, lastName, email, password, role) {
@@ -110,11 +92,7 @@ async function getProjects() {
 async function main() {
   console.log('\n🚀 Echelon Demo Data Seeder\n')
 
-  // Step 1: Login
-  const loggedIn = await login()
-  if (!loggedIn) return
-
-  // Step 2: Register Employees
+  // Step 1: Register Employees
   console.log('\n📋 Registering Employees...\n')
   
   const employees = [
@@ -144,7 +122,7 @@ async function main() {
   const david = allEmployees?.find(e => e.Email === 'david@echelon.io')
   const jessica = allEmployees?.find(e => e.Email === 'jessica@echelon.io')
 
-  // Step 3: Create Projects
+  // Step 2: Create Projects
   console.log('\n📁 Creating Projects...\n')
 
   const project1 = await createProject(
@@ -183,7 +161,7 @@ async function main() {
   const mobile = allProjects?.find(p => p.ProjectName === 'Mobile Shopping App')
   const admin = allProjects?.find(p => p.ProjectName === 'Admin Dashboard & Analytics')
 
-  // Step 4: Create Tasks for Medusa
+  // Step 3: Create Tasks for Medusa
   if (medusa) {
     console.log('\n📝 Creating Tasks for Medusa...\n')
     
@@ -199,7 +177,7 @@ async function main() {
     await createTask(medusa.ProjectID, 'Security audit and fixes', 'Run security scan and fix vulnerabilities', '2026-07-14', 'Pending', 'High')
   }
 
-  // Step 5: Create Tasks for Mobile App
+  // Step 4: Create Tasks for Mobile App
   if (mobile) {
     console.log('\n📝 Creating Tasks for Mobile App...\n')
     
@@ -210,7 +188,7 @@ async function main() {
     await createTask(mobile.ProjectID, 'App store submission', 'Prepare assets and submit to App Store and Play Store', '2026-09-15', 'Pending', 'High')
   }
 
-  // Step 6: Create Tasks for Admin Dashboard
+  // Step 5: Create Tasks for Admin Dashboard
   if (admin) {
     console.log('\n📝 Creating Tasks for Admin Dashboard...\n')
     
@@ -219,7 +197,7 @@ async function main() {
     await createTask(admin.ProjectID, 'User role management', 'Add RBAC with permission controls', '2026-10-15', 'Pending', 'High')
   }
 
-  // Step 7: Assign Employees to Projects
+  // Step 6: Assign Employees to Projects
   console.log('\n👥 Assigning Employees to Projects...\n')
 
   if (james && medusa) await assignEmployee(james.EmployeeID, medusa.ProjectID, 'Project Lead')

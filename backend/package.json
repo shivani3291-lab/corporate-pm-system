@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Express + Prisma REST API for Echelon, a corporate project management platform.",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "keywords": [],
-  "author": "",
+  "author": "Shivani Chaudhari",
   "license": "ISC",
   "packageManager": "pnpm@10.32.1",
   "dependencies": {

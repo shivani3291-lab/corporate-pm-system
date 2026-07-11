@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest'
 // ---------------------------------------------------------------------------
 
 describe('authenticate middleware', () => {
-  it('rejects requests without Authorization header', async () => {
+  it('attaches demo user when no Authorization header (login disabled for demo build)', async () => {
     const { authenticate } = await import('../middleware/auth')
 
     const req: any = { headers: {} }
@@ -22,11 +22,12 @@ describe('authenticate middleware', () => {
     let nextCalled = false
     authenticate(req, res, () => { nextCalled = true })
 
-    expect(nextCalled).toBe(false)
-    expect(res._status).toBe(401)
+    expect(nextCalled).toBe(true)
+    expect(req.user).toBeDefined()
+    expect(req.user.role).toBe('Admin')
   })
 
-  it('rejects requests with invalid token', async () => {
+  it('falls back to demo user on invalid token', async () => {
     const { authenticate } = await import('../middleware/auth')
 
     const req: any = { headers: { authorization: 'Bearer invalid-token' } }
@@ -43,8 +44,9 @@ describe('authenticate middleware', () => {
     let nextCalled = false
     authenticate(req, res, () => { nextCalled = true })
 
-    expect(nextCalled).toBe(false)
-    expect(res._status).toBe(401)
+    expect(nextCalled).toBe(true)
+    expect(req.user).toBeDefined()
+    expect(req.user.role).toBe('Admin')
   })
 
   it('accepts valid JWT and attaches user', async () => {

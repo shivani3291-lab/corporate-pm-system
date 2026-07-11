@@ -2,6 +2,8 @@
 
 **Corporate Project Management System - Complete API Reference**
 
+> **Public demo mode:** requests without a valid Bearer token are treated as a demo Admin user rather than rejected — see [README.md](README.md#documentation) for details. The endpoints below reflect the full JWT/RBAC design.
+
 ---
 
 ## Table of Contents
@@ -32,7 +34,7 @@ Development:
 - AI Service:  http://localhost:8000
 
 Production (Azure):
-- Backend API: https://corporate-pm-backend-xxxx.azurewebsites.net/api
+- Backend API: https://echelon-backend-bjaredf7f0c5gge3.eastus-01.azurewebsites.net/api
 ```
 
 ### Request Headers

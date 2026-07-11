@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
 import express from 'express'
 import cors from 'cors'
 import cron from 'node-cron'
-import prisma from './lib/prisma'          // ← add this import
+import prisma from './lib/prisma'
 import authRoutes from './routes/auth'
 import employeeRoutes from './routes/employees'
 import projectRoutes from './routes/projects'
@@ -22,9 +22,7 @@ const app = express()
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://corporate-pm-frontend-bgeyefcjcqgpb9hf.centralindia-01.azurewebsites.net',
     'https://echelon-frontend-bjaredf7f0c5gge3.eastus-01.azurewebsites.net',
-    'https://echelon-frontend-brgeavhtd7h4gqc8.eastus-01.azurewebsites.net',
   ],
   credentials: true
 }))
@@ -60,7 +58,7 @@ async function checkDbConnection() {
 }
 
 async function main() {
-  await checkDbConnection()   // ← runs once on startup
+  await checkDbConnection()
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`)

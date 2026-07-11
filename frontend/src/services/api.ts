@@ -11,36 +11,8 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
-
-export const authAPI = {
-  login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data),
-  register: (data: {
-    firstName: string
-    lastName: string
-    email: string
-    password: string
-  }) =>
-    api.post<{
-      token: string
-      user: {
-        id: number
-        firstName: string
-        lastName: string
-        email: string
-        role: string
-      }
-    }>('/auth/register', data),
-}
 
 export const projectsAPI = {
   getAll: () => api.get('/projects'),

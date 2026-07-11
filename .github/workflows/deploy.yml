@@ -121,7 +121,7 @@ jobs:
 
       - name: Run tests
         working-directory: ai-service
-        run: python -m pytest --tb=short -q || echo "No tests found, skipping"
+        run: python -m pytest --tb=short -q
 
   # ── Deploy: only when manually triggered with deploy=true ────
   deploy:

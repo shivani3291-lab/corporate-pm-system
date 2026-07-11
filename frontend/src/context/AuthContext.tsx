@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext } from 'react'
 import type { ReactNode } from 'react'
 
 interface User {
@@ -12,51 +12,27 @@ interface User {
 interface AuthContextType {
   user: User | null
   token: string | null
-  login: (token: string, user: User) => void
-  logout: () => void
   isAuthenticated: boolean
 }
 
+// Login is disabled for this public demo build — the app always runs as this
+// demo Admin user so the project is directly browsable without credentials.
+const DEMO_USER: User = {
+  id: 1,
+  firstName: 'Demo',
+  lastName: 'Admin',
+  email: 'demo@echelon.dev',
+  role: 'Admin',
+}
+const DEMO_TOKEN = 'demo-mode'
+
 const AuthContext = createContext<AuthContextType | null>(null)
 
-function readStoredAuth(): { token: string | null; user: User | null } {
-  try {
-    const savedToken = localStorage.getItem('token')
-    const savedUser = localStorage.getItem('user')
-    if (!savedToken || !savedUser) {
-      return { token: null, user: null }
-    }
-    const user = JSON.parse(savedUser) as User
-    if (!user?.id || !user?.email) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      return { token: null, user: null }
-    }
-    return { token: savedToken, user }
-  } catch {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    return { token: null, user: null }
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [{ token, user }, setAuth] = useState(() => readStoredAuth())
-
-  const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('token', newToken)
-    localStorage.setItem('user', JSON.stringify(newUser))
-    setAuth({ token: newToken, user: newUser })
-  }
-
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setAuth({ token: null, user: null })
-  }
-
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider
+      value={{ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true }}
+    >
       {children}
     </AuthContext.Provider>
   )

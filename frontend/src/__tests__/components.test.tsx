@@ -50,48 +50,6 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Login page
-// ---------------------------------------------------------------------------
-
-describe('Login page', () => {
-  beforeEach(() => localStorageMock.clear())
-
-  it('renders login form', async () => {
-    const Login = (await import('../pages/Login')).default
-    render(<Wrapper><Login /></Wrapper>)
-    expect(screen.getByText('Welcome back')).toBeInTheDocument()
-  })
-
-  it('has register link', async () => {
-    const Login = (await import('../pages/Login')).default
-    render(<Wrapper><Login /></Wrapper>)
-    expect(screen.getByText('Create one')).toBeInTheDocument()
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Register page
-// ---------------------------------------------------------------------------
-
-describe('Register page', () => {
-  beforeEach(() => localStorageMock.clear())
-
-  it('renders register form', async () => {
-    const Register = (await import('../pages/Register')).default
-    render(<Wrapper><Register /></Wrapper>)
-    expect(screen.getByText('Create an account')).toBeInTheDocument()
-    expect(screen.getByText('First name')).toBeInTheDocument()
-    expect(screen.getByText('Last name')).toBeInTheDocument()
-  })
-
-  it('has sign-in link', async () => {
-    const Register = (await import('../pages/Register')).default
-    render(<Wrapper><Register /></Wrapper>)
-    expect(screen.getByText('Sign in')).toBeInTheDocument()
-  })
-})
-
-// ---------------------------------------------------------------------------
 // Sidebar
 // ---------------------------------------------------------------------------
 
@@ -142,7 +100,6 @@ describe('Sidebar', () => {
 describe('API service', () => {
   it('exports all API objects', async () => {
     const api = await import('../services/api')
-    expect(api.authAPI).toBeDefined()
     expect(api.projectsAPI).toBeDefined()
     expect(api.tasksAPI).toBeDefined()
     expect(api.documentsAPI).toBeDefined()
@@ -151,12 +108,6 @@ describe('API service', () => {
     expect(api.alertsAPI).toBeDefined()
     expect(api.assignmentsAPI).toBeDefined()
     expect(api.aiAPI).toBeDefined()
-  })
-
-  it('authAPI has login and register', async () => {
-    const { authAPI } = await import('../services/api')
-    expect(typeof authAPI.login).toBe('function')
-    expect(typeof authAPI.register).toBe('function')
   })
 
   it('aiAPI has all AI methods', async () => {
