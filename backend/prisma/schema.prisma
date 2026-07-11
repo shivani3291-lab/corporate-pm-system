@@ -93,3 +93,27 @@ model ProjectAssignment {
   employee      Employee @relation(fields: [EmployeeID], references: [EmployeeID])
   project       Project  @relation(fields: [ProjectID], references: [ProjectID])
 }
+
+/// One row per RAG chat turn — retrieval + generation + heuristic quality scoring.
+/// RetrievedChunks is JSON-serialized (no native JSON type on this SQL Server setup).
+model AiTrace {
+  TraceID           Int      @id @default(autoincrement())
+  Question          String   @db.Text
+  Answer            String   @db.Text
+  Prompt            String   @db.Text
+  PromptVersion     String?  @db.VarChar(20)
+  Model             String   @db.VarChar(50)
+  RetrievedChunks   String   @db.Text
+  RetrievalMs       Int
+  LlmMs             Int
+  TotalMs           Int
+  TokensIn          Int
+  TokensOut         Int
+  CostUsd           Float
+  Groundedness      String   @db.VarChar(10)
+  RetrievalQuality  String   @db.VarChar(10)
+  HallucinationRisk Boolean
+  AnswerRelevance   String   @db.VarChar(10)
+  UserFeedback      String?  @db.VarChar(20)
+  CreatedAt         DateTime @default(now())
+}

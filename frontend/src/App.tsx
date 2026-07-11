@@ -6,6 +6,7 @@ import Documents from './pages/Documents'
 import Employees from './pages/Employees'
 import Categories from './pages/Categories'
 import Alerts from './pages/Alerts'
+import AiObservability from './pages/AiObservability'
 
 // Login is disabled for this public demo build — every route is open.
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/employees" element={<Employees />} />
       <Route path="/categories" element={<Categories />} />
       <Route path="/alerts" element={<Alerts />} />
+      <Route path="/ai-observability" element={<AiObservability />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

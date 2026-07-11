@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed — env vars must be set in the shell/host instead
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -12,6 +18,8 @@ from models.delay_predictor import predict_delay
 from models.health_pipeline import analyze_project_health
 from models.search import semantic_search
 from models.auto_prioritizer import auto_prioritize_tasks
+from models.rag_chat import retrieve_and_answer
+from models.observability import score_trace, estimate_cost_usd
 
 app = FastAPI(title="Corporate PM AI Service", version="1.0.0")
 
@@ -243,7 +251,7 @@ class FeedbackResponse(BaseModel):
 @app.post("/classify-feedback", response_model=FeedbackResponse)
 def post_classify_feedback(body: FeedbackRequest) -> FeedbackResponse:
     """Called when user selects a different category than AI suggested.
-    
+
     Adds the title + correct category as a training example
     so the model improves future predictions.
     """
@@ -251,4 +259,77 @@ def post_classify_feedback(body: FeedbackRequest) -> FeedbackResponse:
     return FeedbackResponse(
         success=ok,
         message=f"Learned: '{body.title}' → '{body.category}'",
+    )
+
+
+# ── RAG chat + observability (Tiny RAG feature) ───────────────
+
+class RagCorpusItem(BaseModel):
+    id: int
+    kind: str
+    title: str = ""
+    text: str = ""
+
+
+class RagChatRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=1000)
+    corpus: list[RagCorpusItem] = Field(default_factory=list)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class RetrievedChunkOut(BaseModel):
+    id: int | None = None
+    kind: str | None = None
+    title: str
+    text: str
+    score: float
+
+
+class RagChatResponse(BaseModel):
+    answer: str
+    retrieved_chunks: list[RetrievedChunkOut]
+    prompt: str
+    prompt_version: str
+    model: str
+    tokens_in: int
+    tokens_out: int
+    cost_usd: float
+    retrieval_ms: int
+    llm_ms: int
+    total_ms: int
+    groundedness: str
+    retrieval_quality: str
+    hallucination_risk: bool
+    answer_relevance: str
+
+
+@app.post("/rag/chat", response_model=RagChatResponse)
+def post_rag_chat(body: RagChatRequest) -> RagChatResponse:
+    try:
+        corpus = [item.model_dump() for item in body.corpus]
+        result = retrieve_and_answer(body.question, corpus, top_k=body.top_k)
+        quality = score_trace(body.question, result["answer"], result["retrieved_chunks"])
+        cost_usd = estimate_cost_usd(result["model"], result["tokens_in"], result["tokens_out"])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        # Groq API errors (missing/invalid key, rate limit, network) — distinct
+        # from a 400 so the caller knows the request itself was fine.
+        raise HTTPException(status_code=502, detail=f"RAG chat failed: {e}") from e
+    return RagChatResponse(
+        answer=result["answer"],
+        retrieved_chunks=[RetrievedChunkOut(**c) for c in result["retrieved_chunks"]],
+        prompt=result["prompt"],
+        prompt_version=result["prompt_version"],
+        model=result["model"],
+        tokens_in=result["tokens_in"],
+        tokens_out=result["tokens_out"],
+        cost_usd=cost_usd,
+        retrieval_ms=result["retrieval_ms"],
+        llm_ms=result["llm_ms"],
+        total_ms=result["total_ms"],
+        groundedness=quality["groundedness"],
+        retrieval_quality=quality["retrieval_quality"],
+        hallucination_risk=quality["hallucination_risk"],
+        answer_relevance=quality["answer_relevance"],
     )

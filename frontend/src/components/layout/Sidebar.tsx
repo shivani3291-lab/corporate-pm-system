@@ -12,6 +12,7 @@ const navItems = [
   { path: '/alerts', icon: '✦', label: 'Alerts', section: 'Main' },
   { path: '/documents', icon: '▦', label: 'Documents', section: 'Resources' },
   { path: '/employees', icon: '◉', label: 'Employees', section: 'Resources' },
+  { path: '/ai-observability', icon: '◆', label: 'AI Observability', section: 'Resources' },
 ]
 
 const sections = ['Main', 'Resources']

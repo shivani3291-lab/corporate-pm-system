@@ -36,6 +36,52 @@ def _get_model() -> Any:
     return _MODEL
 
 
+def embedder_available() -> bool:
+    """Whether sentence-transformers is installed (shared by search + RAG retrieval)."""
+    return _check_available()
+
+
+def embed_search(query: str, texts: list[str], k: int) -> list[tuple[int, float]]:
+    """
+    Embed texts + query with the shared sentence-transformers model, build an
+    ephemeral FAISS cosine-similarity index, and return the top-k
+    (index_into_texts, score) pairs sorted by score descending.
+
+    Shared by semantic_search() and models.rag_chat's retriever so the
+    embedding/index-building logic lives in exactly one place.
+    """
+    if not _check_available():
+        raise ValueError("sentence-transformers not installed — semantic search unavailable")
+    if not texts:
+        return []
+
+    model = _get_model()
+    emb = model.encode(
+        texts,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )
+    q_emb = model.encode(
+        [query],
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )[0]
+
+    dim = int(emb.shape[1])
+    index = faiss.IndexFlatIP(dim)
+    index.add(emb.astype(np.float32))
+    scores, indices = index.search(q_emb.reshape(1, -1).astype(np.float32), k)
+
+    out: list[tuple[int, float]] = []
+    for score, idx in zip(scores[0], indices[0]):
+        if idx < 0 or idx >= len(texts):
+            continue
+        out.append((int(idx), float(score)))
+    return out
+
+
 def semantic_search(
     query: str,
     items: list[dict],
@@ -52,41 +98,19 @@ def semantic_search(
     if not items:
         return []
 
-    if not _check_available():
-        raise ValueError("sentence-transformers not installed — semantic search unavailable")
-
     limit = max(1, min(int(limit), 50))
     k = min(limit, len(items))
 
-    model = _get_model()
     titles = [str(it.get("title") or "") for it in items]
-    emb = model.encode(
-        titles,
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-        show_progress_bar=False,
-    )
-    q_emb = model.encode(
-        [q],
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-        show_progress_bar=False,
-    )[0]
-
-    dim = int(emb.shape[1])
-    index = faiss.IndexFlatIP(dim)
-    index.add(emb.astype(np.float32))
-    scores, indices = index.search(q_emb.reshape(1, -1).astype(np.float32), k)
+    pairs = embed_search(q, titles, k)
 
     out: list[dict] = []
-    for score, idx in zip(scores[0], indices[0]):
-        if idx < 0 or idx >= len(items):
-            continue
+    for idx, score in pairs:
         it = items[idx]
         out.append(
             {
                 "title": str(it.get("title") or ""),
-                "score": float(score),
+                "score": score,
                 "id": int(it["id"]) if it.get("id") is not None else None,
                 "kind": str(it.get("kind") or ""),
             }

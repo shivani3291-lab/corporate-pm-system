@@ -405,4 +405,282 @@ router.post('/auto-prioritize', authenticate, async (req: AuthRequest, res: Resp
   }
 })
 
+// ── Tiny RAG chat + observability ─────────────────────────────
+
+type RagCorpusItem = { id: number; kind: 'project' | 'task' | 'document' | 'alert'; title: string; text: string }
+
+/** Builds the RAG retrieval corpus from what's actually stored: project/task
+ * descriptions, document titles (documents have no persisted body text —
+ * PDF content is only parsed transiently at upload-time for classification),
+ * and predictive alerts. Note: retrieval only surfaces the top-k most similar
+ * chunks, so "how many alerts" style count questions stay unreliable even
+ * with alerts included — RAG isn't a substitute for a real aggregate query. */
+async function buildRagCorpus(): Promise<RagCorpusItem[]> {
+  const [projects, tasks, documents, alerts] = await Promise.all([
+    prisma.project.findMany({
+      select: { ProjectID: true, ProjectName: true, Description: true, ClientName: true, Status: true },
+    }),
+    prisma.task.findMany({
+      select: { TaskID: true, TaskName: true, Description: true, Status: true, Priority: true },
+    }),
+    prisma.document.findMany({
+      select: { DocumentID: true, DocumentTitle: true, category: { select: { CategoryName: true } } },
+    }),
+    prisma.projectAlert.findMany({
+      select: {
+        AlertID: true, AlertType: true, Severity: true, Message: true,
+        project: { select: { ProjectName: true } },
+      },
+    }),
+  ])
+
+  const corpus: RagCorpusItem[] = []
+
+  for (const p of projects) {
+    corpus.push({
+      id: p.ProjectID,
+      kind: 'project',
+      title: p.ProjectName,
+      text: [
+        p.ProjectName,
+        p.Description,
+        p.ClientName && `Client: ${p.ClientName}.`,
+        p.Status && `Status: ${p.Status}.`,
+      ].filter(Boolean).join(' '),
+    })
+  }
+  for (const t of tasks) {
+    corpus.push({
+      id: t.TaskID,
+      kind: 'task',
+      title: t.TaskName,
+      text: [
+        t.TaskName,
+        t.Description,
+        t.Status && `Status: ${t.Status}.`,
+        t.Priority && `Priority: ${t.Priority}.`,
+      ].filter(Boolean).join(' '),
+    })
+  }
+  for (const d of documents) {
+    corpus.push({
+      id: d.DocumentID,
+      kind: 'document',
+      title: d.DocumentTitle,
+      text: [d.DocumentTitle, d.category?.CategoryName && `Category: ${d.category.CategoryName}.`]
+        .filter(Boolean).join(' '),
+    })
+  }
+  for (const a of alerts) {
+    const title = `${a.AlertType} alert (${a.Severity})`
+    corpus.push({
+      id: a.AlertID,
+      kind: 'alert',
+      title,
+      text: [
+        title,
+        a.project?.ProjectName && `Project: ${a.project.ProjectName}.`,
+        a.Message,
+      ].filter(Boolean).join(' '),
+    })
+  }
+  return corpus
+}
+
+type RagChatAiResponse = {
+  answer: string
+  retrieved_chunks: Array<{ id: number | null; kind: string | null; title: string; text: string; score: number }>
+  prompt: string
+  prompt_version: string
+  model: string
+  tokens_in: number
+  tokens_out: number
+  cost_usd: number
+  retrieval_ms: number
+  llm_ms: number
+  total_ms: number
+  groundedness: string
+  retrieval_quality: string
+  hallucination_risk: boolean
+  answer_relevance: string
+}
+
+router.post('/chat', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { question, topK } = req.body as { question?: string; topK?: number }
+    if (!question || typeof question !== 'string' || !question.trim()) {
+      res.status(400).json({ error: 'question is required' })
+      return
+    }
+
+    const corpus = await buildRagCorpus()
+    if (corpus.length === 0) {
+      res.status(400).json({ error: 'No projects, tasks, or documents to answer from yet' })
+      return
+    }
+
+    let data: RagChatAiResponse
+    try {
+      const r = await fetch(`${aiServiceBase()}/rag/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.trim(),
+          corpus,
+          top_k: Math.min(Math.max(Number(topK) || 5, 1), 20),
+        }),
+        signal: AbortSignal.timeout(60_000),
+      })
+
+      if (!r.ok) {
+        const detail = await r.text()
+        res.status(502).json({ error: 'AI service error', detail })
+        return
+      }
+      data = (await r.json()) as RagChatAiResponse
+    } catch {
+      res.status(503).json({ error: 'AI service unavailable' })
+      return
+    }
+
+    let trace
+    try {
+      trace = await prisma.aiTrace.create({
+        data: {
+          Question: question.trim(),
+          Answer: data.answer,
+          Prompt: data.prompt,
+          PromptVersion: data.prompt_version,
+          Model: data.model,
+          RetrievedChunks: JSON.stringify(data.retrieved_chunks),
+          RetrievalMs: data.retrieval_ms,
+          LlmMs: data.llm_ms,
+          TotalMs: data.total_ms,
+          TokensIn: data.tokens_in,
+          TokensOut: data.tokens_out,
+          CostUsd: data.cost_usd,
+          Groundedness: data.groundedness,
+          RetrievalQuality: data.retrieval_quality,
+          HallucinationRisk: data.hallucination_risk,
+          AnswerRelevance: data.answer_relevance,
+        },
+      })
+    } catch (err) {
+      res.status(500).json({ error: 'Got an answer but failed to save the trace', detail: String(err) })
+      return
+    }
+
+    res.json({
+      answer: data.answer,
+      traceId: trace.TraceID,
+      groundedness: data.groundedness,
+      retrievalQuality: data.retrieval_quality,
+      hallucinationRisk: data.hallucination_risk,
+      answerRelevance: data.answer_relevance,
+    })
+  } catch {
+    res.status(500).json({ error: 'Failed to build the RAG corpus from the database' })
+  }
+})
+
+// Pure data update — no ai-service call. There's no computation to delegate
+// for recording a thumbs up/down, so this stays backend-only (consistent
+// with the AI service having no DB access anywhere else in this app).
+router.post('/chat/feedback', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { traceId, feedback } = req.body as { traceId?: number; feedback?: string }
+    const id = Number(traceId)
+    if (!id || Number.isNaN(id)) {
+      res.status(400).json({ error: 'traceId is required' })
+      return
+    }
+    if (feedback !== 'thumbs_up' && feedback !== 'thumbs_down') {
+      res.status(400).json({ error: 'feedback must be thumbs_up or thumbs_down' })
+      return
+    }
+    const trace = await prisma.aiTrace.update({
+      where: { TraceID: id },
+      data: { UserFeedback: feedback },
+    })
+    res.json({ traceId: trace.TraceID, userFeedback: trace.UserFeedback })
+  } catch {
+    res.status(500).json({ error: 'Failed to record feedback' })
+  }
+})
+
+router.get('/traces', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { badOnly, minLatencyMs, maxLatencyMs, startDate, endDate } = req.query as {
+      badOnly?: string
+      minLatencyMs?: string
+      maxLatencyMs?: string
+      startDate?: string
+      endDate?: string
+    }
+
+    const where: Record<string, unknown> = {}
+    if (badOnly === 'true') {
+      where.OR = [
+        { Groundedness: 'low' },
+        { RetrievalQuality: 'low' },
+        { HallucinationRisk: true },
+        { UserFeedback: 'thumbs_down' },
+      ]
+    }
+    if (minLatencyMs || maxLatencyMs) {
+      where.TotalMs = {
+        ...(minLatencyMs && { gte: parseInt(minLatencyMs, 10) }),
+        ...(maxLatencyMs && { lte: parseInt(maxLatencyMs, 10) }),
+      }
+    }
+    if (startDate || endDate) {
+      where.CreatedAt = {
+        ...(startDate && { gte: new Date(startDate) }),
+        ...(endDate && { lte: new Date(endDate) }),
+      }
+    }
+
+    const traces = await prisma.aiTrace.findMany({
+      where,
+      orderBy: { CreatedAt: 'desc' },
+      take: 200,
+      select: {
+        TraceID: true,
+        Question: true,
+        Model: true,
+        TotalMs: true,
+        RetrievalMs: true,
+        LlmMs: true,
+        CostUsd: true,
+        Groundedness: true,
+        RetrievalQuality: true,
+        HallucinationRisk: true,
+        AnswerRelevance: true,
+        UserFeedback: true,
+        CreatedAt: true,
+      },
+    })
+    res.json(traces)
+  } catch {
+    res.status(500).json({ error: 'Failed to load traces' })
+  }
+})
+
+router.get('/traces/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10)
+    const trace = await prisma.aiTrace.findUnique({ where: { TraceID: id } })
+    if (!trace) {
+      res.status(404).json({ error: 'Trace not found' })
+      return
+    }
+    res.json({
+      ...trace,
+      RetrievedChunks: JSON.parse(trace.RetrievedChunks),
+    })
+  } catch {
+    res.status(500).json({ error: 'Failed to load trace' })
+  }
+})
+
 export default router

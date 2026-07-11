@@ -141,6 +141,60 @@ export const aiAPI = {
         reason: string
       }>
     }>('/ai/auto-prioritize', { projectId }),
+  chat: (question: string, topK = 5) =>
+    api.post<{
+      answer: string
+      traceId: number
+      groundedness: string
+      retrievalQuality: string
+      hallucinationRisk: boolean
+      answerRelevance: string
+    }>('/ai/chat', { question, topK }),
+  chatFeedback: (traceId: number, feedback: 'thumbs_up' | 'thumbs_down') =>
+    api.post<{ traceId: number; userFeedback: string }>('/ai/chat/feedback', {
+      traceId,
+      feedback,
+    }),
+  getTraces: (params?: { badOnly?: boolean; minLatencyMs?: number; maxLatencyMs?: number; startDate?: string; endDate?: string }) =>
+    api.get<
+      Array<{
+        TraceID: number
+        Question: string
+        Model: string
+        TotalMs: number
+        RetrievalMs: number
+        LlmMs: number
+        CostUsd: number
+        Groundedness: string
+        RetrievalQuality: string
+        HallucinationRisk: boolean
+        AnswerRelevance: string
+        UserFeedback: string | null
+        CreatedAt: string
+      }>
+    >('/ai/traces', { params }),
+  getTraceDetail: (traceId: number) =>
+    api.get<{
+      TraceID: number
+      Question: string
+      Answer: string
+      Prompt: string
+      PromptVersion: string | null
+      Model: string
+      RetrievedChunks: Array<{ id: number | null; kind: string | null; title: string; text: string; score: number }>
+      RetrievalMs: number
+      LlmMs: number
+      TotalMs: number
+      TokensIn: number
+      TokensOut: number
+      CostUsd: number
+      Groundedness: string
+      RetrievalQuality: string
+      HallucinationRisk: boolean
+      AnswerRelevance: string
+      UserFeedback: string | null
+      CreatedAt: string
+    }>(`/ai/traces/${traceId}`),
 }
 
 export default api
