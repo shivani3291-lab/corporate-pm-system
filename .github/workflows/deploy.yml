@@ -153,17 +153,17 @@ jobs:
       - name: Deploy frontend to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: echelon-frontend
+          app-name: corporate-pm-frontend
           package: frontend/dist
 
       - name: Deploy backend to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: echelon-backend
+          app-name: corporate-pm-backend
           package: backend/dist
 
       - name: Deploy AI service to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: echelon-ai-models
+          app-name: corporate-pm-ai
           package: ai-service

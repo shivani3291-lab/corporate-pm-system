@@ -34,7 +34,7 @@ Development:
 - AI Service:  http://localhost:8000
 
 Production (Azure):
-- Backend API: https://echelon-backend-bjaredf7f0c5gge3.eastus-01.azurewebsites.net/api
+- Backend API: https://corporate-pm-backend-djargqe7cye7f6ct.centralindia-01.azurewebsites.net/api
 ```
 
 ### Request Headers

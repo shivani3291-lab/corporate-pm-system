@@ -22,7 +22,7 @@ const app = express()
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://echelon-frontend-bjaredf7f0c5gge3.eastus-01.azurewebsites.net',
+    'https://corporate-pm-frontend-bgeyefcjcqgpb9hf.centralindia-01.azurewebsites.net',
   ],
   credentials: true
 }))
